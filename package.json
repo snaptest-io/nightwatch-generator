@@ -1,0 +1,29 @@
+{
+  "name": "nightwatch-generator",
+  "version": "1.0.0",
+  "description": "SnapTest's Nightwatch generator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/snaptest-io/nightwatch-generator.git"
+  },
+  "author": "Prolific Devs",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/snaptest/nightwatch-generator/issues"
+  },
+  "homepage": "https://github.com/snaptest/nightwatch-generator#readme",
+  "dependencies": {
+    "ejs": "2.5.7",
+    "fs-extra": "3.0.1",
+    "js-beautify": "1.6.12",
+    "lodash": "4.17.11",
+    "mkdirp": "0.5.1",
+    "sanitize-filename": "1.6.1",
+    "varname": "2.0.3",
+    "url-parse": "1.4.3"
+  }
+}
