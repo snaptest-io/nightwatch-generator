@@ -83,7 +83,7 @@ module.exports.getNWKeyValueFromCode = function (keyCode) {
 
 module.exports.buildActionDescription = function(action, ActionInfo) {
 
-  var actionDescription = ActionInfo.ByConstant[action.type].name;
+  var actionDescription = ActionInfo.ByConstant[action.type] ? ActionInfo.ByConstant[action.type].name : "";
   var description;
 
   if (actionDescription) {
