@@ -15,7 +15,7 @@ module.exports = {
     var vars = Variables.build({<% test.variables.forEach((variable, idx) => { %>
       "<%=variable.name%>": "<%=variable.defaultValue%>"<%= (idx < test.variables.length - 1? "," : "")%><% }); %>
     }, browser);
-    // console.log(vars);
+    console.log(vars);
 
     browser
 <%- test.generateActionBlock(6, " ") %>

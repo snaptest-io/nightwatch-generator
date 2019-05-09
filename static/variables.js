@@ -31,7 +31,11 @@ module.exports.build = (testVars, browser) => {
   var computed = Object.assign({},
     spreadVariables(system),
     spreadVariables(testVars),
-    spreadVariables(envVars)
+    // spreadVariables(compDefaultVars),
+    spreadVariables(envVars),
+    // subroutine.compVars ? spreadVariables(subroutine.compVars.instance) : {},
+    // dataVars,
+    // dynamicVars
   );
 
   // Add to Nightwatch browser object for easy access within the driver.
@@ -66,7 +70,7 @@ function combineVarsWith(_combinee, combiner, allowDups = true) {
 function getSelectedEnvIdFromConfig(browser) {
 
   if (browser.globals.env) {
-    var selectedEnv = _.find(browser.globals.env, {id: browser.globals.env});
+    var selectedEnv = _.find(envs, {id: browser.globals.env});
 
     if (selectedEnv) {
       return selectedEnv.id;
