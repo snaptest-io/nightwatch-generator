@@ -6,7 +6,7 @@ var treeUtils = require('../utils/tree');
 var FSUtils = require('../utils/virtualFS');
 var _ = require("lodash");
 var sanitizeForFilename = require("sanitize-filename");
-var generateSuite = require('./suiteFile');
+var generateSuite = require('./suite');
 
 module.exports.generateFlat = function(testData, fileStructure, testsPath) {
 
@@ -105,7 +105,6 @@ module.exports.generateSuites = function(fileStructure, meta) {
   });
 
 };
-
 
 isFolder = (node) => _.isArray(node.children);
 

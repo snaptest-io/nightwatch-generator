@@ -11,7 +11,7 @@ module.exports = function(data) {
   var suiteName = data.suiteName;
   var tests = data.tests;
 
-  var driverString = fs.readFileSync(`${__dirname}/../templates/SnapSuite.js`, 'utf8');
+  var driverString = fs.readFileSync(`${__dirname}/../templates/suite.js`, 'utf8');
 
   var rendered = ejs.render(driverString, {
     suiteName: suiteName,
