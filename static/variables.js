@@ -9,11 +9,13 @@
 var _ = require('lodash');
 var envs = require('./environments.json');
 
-module.exports.build = (testVars, browser) => {
+module.exports = (browser) => {
 
+  // var computed = {};
   var selectedEnvId = getSelectedEnvIdFromConfig(browser);
+
+  var testVars = [];
   var envVars = selectedEnvId ? getEnvVars(selectedEnvId) : [];
-  var testVars = Object.keys(testVars).map((key) => ({key: key, value: testVars[key]}));
 
   var system = [
     {key: "random", value: parseInt(Math.random() * 10000000)},
@@ -25,23 +27,37 @@ module.exports.build = (testVars, browser) => {
   envVars = combineVarsWith(envVars, system);
   envVars = combineVarsWith(envVars, envVars, false);
 
-  testVars = combineVarsWith(testVars, system);
-  testVars = combineVarsWith(testVars, testVars, false);
+  return {
+    computeTestVars: (_testVars) => {
 
-  var computed = Object.assign({},
-    spreadVariables(system),
-    spreadVariables(testVars),
-    // spreadVariables(compDefaultVars),
-    spreadVariables(envVars),
-    // subroutine.compVars ? spreadVariables(subroutine.compVars.instance) : {},
-    // dataVars,
-    // dynamicVars
-  );
+      testVars = Object.keys(_testVars).map((key) => ({key: key, value: _testVars[key]}));
+      testVars = combineVarsWith(testVars, system);
+      testVars = combineVarsWith(testVars, testVars, false);
 
-  // Add to Nightwatch browser object for easy access within the driver.
-  browser.variables = computed;
+      return Object.assign({},
+        spreadVariables(system),
+        spreadVariables(testVars),
+        spreadVariables(envVars)
+      );
 
-  return computed;
+    },
+    computeCompVars: (_instanceVars, _defaultVars) => {
+
+      var instanceVars = Object.keys(_instanceVars).map((key) => ({key: key, value: _instanceVars[key]}));
+      var defaultVars = Object.keys(_defaultVars).map((key) => ({key: key, value: _defaultVars[key]}));
+
+      console.log(testVars)
+
+      return Object.assign({},
+        spreadVariables(system),
+        spreadVariables(testVars),
+        spreadVariables(defaultVars),
+        spreadVariables(envVars),
+        spreadVariables(instanceVars)
+      );
+
+    }
+  }
 
 };
 

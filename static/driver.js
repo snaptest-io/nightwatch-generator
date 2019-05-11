@@ -1,6 +1,6 @@
 const TIMEOUT = 1000;
 
-module.exports.bindHelpers = function(browser) {
+module.exports.bindDriver = function(browser) {
 
   var oldUrl = browser.url;
   var oldBack = browser.back;

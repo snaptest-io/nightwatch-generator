@@ -245,6 +245,16 @@ var actions = {
       ]
     }
   },
+  "COMPONENT": {
+    render: (action, selector, value, description, line, blocks, indent, meta) => {
+      var component = _.find(meta.components, {id: action.componentId});
+
+      if (!component) return [];
+      return `
+       .components.${component.name}(variables, ${buildComponentActionParams(action, component)})
+      `;
+    }
+  }
   // "KEYDOWN": {
   //   render: (action, selector, value, description, line, blocks, indent, meta) => `
   //     KeyDown(${genSelector(action)}, ${buildValueString(action.selector)}, ${buildDescription(description)}${buildEnding(line, blocks)};
@@ -260,21 +270,11 @@ var actions = {
   //     SetDialogResponses(${buildBooleanString(action.alert)}, ${action.confirm ? `"accept"` : `"reject"`}, ${action.prompt ? `"${action.promptResponse}"` : "null"}, ${buildDescription(description)}${buildEnding(line, blocks)};
   //   `
   // },
-  // "COMPONENT": {
-  //   render: (action, selector, value, description, line, blocks, indent, meta) => {
-  //     var component = _.find(meta.components, {id: action.componentId});
-  //
-  //     if (!component) return "";
-  //     return `
-  //      components.${component.name}(${buildComponentActionParams(action, component)});
-  //     `;
-  //   }
-  // }
 };
 
 function prefixVars(string) {
 
-  // convert ${xyz} to ${vars.xyz}
+  // converts ${xyz} to ${vars.xyz}
 
   var regex = new RegExp("\\$\\{(.*?)\\}", "g");
 
@@ -297,7 +297,7 @@ function prefixVars(string) {
 
 function renderBlockWrapper(line, blocks) {
 
-  // if the next action is something at a higher indent level:
+  // if we're stepping up
   if (line.nextAction.indent > line.action.indent) {
 
     // AND it's a conditional
@@ -344,20 +344,19 @@ function buildEnding(line) {
 
 function buildComponentActionParams(action, component) {
 
-  var params = [];
+  var nameMap = component.variables.reduce((last, variable) => {
+    last[variable.id] = variable.name;
+    return last;
+  }, {});
 
-  component.variables.forEach((variable, idx) => {
+  var result = [];
 
-    var variableInAction = _.find(action.variables, {id: variable.id});
-
-    if (variableInAction) {
-      params.push(`$"${variableInAction.value}"`);
-    } else {
-      params.push(`$"${variable.defaultValue}"`);
+  action.variables.forEach((instanceVar) => {
+    if (nameMap[instanceVar.id]) {
+      result.push(`${nameMap[instanceVar.id]}: "${instanceVar.value}"`)
     }
-
   });
 
-  return params.join(", ");
+  return `{${result.join(", ")}}`;
 
 }

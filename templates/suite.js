@@ -10,16 +10,19 @@ module.exports = {
 <% tests.forEach((test, idx) => { %>
   "<%= test.name %>": function (browser) {
 <% if (idx === 0) { %>
-    require('<%= relPathToRoot %>common/driver.js').bindHelpers(browser);
+    require('<%= relPathToRoot %>common/driver.js').bindDriver(browser);
+    require('<%= relPathToRoot %>common/components.js').bindComponents(browser);
 <% } %>
-    var vars = Variables.build({<% test.variables.forEach((variable, idx) => { %>
+
+    var variables = Variables(browser);
+
+    var vars = variables.computeTestVars({<% test.variables.forEach((variable, idx) => { %>
       "<%=variable.name%>": "<%=variable.defaultValue%>"<%= (idx < test.variables.length - 1? "," : "")%><% }); %>
-    }, browser);
-    console.log(vars);
+    });
 
     browser
-<%- test.generateActionBlock(6, " ") %>
-      .end();
+<%- test.generateActionBlock(6, " ") %>      .end();
+
   }
 <% }); %>
 };

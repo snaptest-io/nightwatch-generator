@@ -1,6 +1,6 @@
 var writeFiles = require('./writeFiles');
 var suiteGenerator = require('./generate/suites');
-// var generateComponents = require('./generate/component');
+var componentGenerator = require('./generate/component');
 var fs = require('fs-extra');
 
 function generate() {
@@ -21,14 +21,14 @@ function generate() {
     { path: ["common", "environments.json"], content: JSON.stringify(envs, null, 2) },
     { path: ["common", "driver.js"], content: fs.readFileSync(`${__dirname}/static/driver.js`, 'utf8') },
     { path: ["common", "variables.js"], content: fs.readFileSync(`${__dirname}/static/variables.js`, 'utf8') },
-    { path: ["components", "components.js"], content: " " }
+    // { path: ["components", "components.js"], content: " " }
   ];
 
   // Hang the various test suites upon the in-memory file structure.
   suiteGenerator.generateFlat(this, fileStructure, ["suites"]);
 
   // Hang the various test suites upon the in-memory file structure.
-  // generateComponents(fileStructure, this);
+  componentGenerator.generateFile(fileStructure, this, ["common"]);
 
   // Write to disc
   writeFiles(fileStructure, this);
