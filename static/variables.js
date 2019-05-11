@@ -46,8 +46,6 @@ module.exports = (browser) => {
       var instanceVars = Object.keys(_instanceVars).map((key) => ({key: key, value: _instanceVars[key]}));
       var defaultVars = Object.keys(_defaultVars).map((key) => ({key: key, value: _defaultVars[key]}));
 
-      console.log(testVars)
-
       return Object.assign({},
         spreadVariables(system),
         spreadVariables(testVars),

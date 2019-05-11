@@ -18,7 +18,6 @@ module.exports.generateFile = function(fileStructure, meta, rootPath) {
     components: meta.components.map((component) => ({
       name: component.name,
       variables: component.variables,
-      // params: component.variables.map((variable) => `String ${variable.name} = "${variable.defaultValue}"`).join(", "),
       generateActionBlock: (indent, indentChar) =>  generateActionBlock(component, meta, indent, indentChar)
     }))
   });

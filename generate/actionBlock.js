@@ -251,7 +251,7 @@ var actions = {
 
       if (!component) return [];
       return `
-       .components.${component.name}(variables, ${buildComponentActionParams(action, component)})
+       .components["${component.name}"](variables, ${buildComponentActionParams(action, component)})
       `;
     }
   }
