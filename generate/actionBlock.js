@@ -54,16 +54,12 @@ function generateLine(line, blocks, indent, meta) {
 
   }
   else if (exclude.indexOf(action.type) === -1)
-    strings = [0, `// No support for: Action ${action.type}`];
+    strings = [[0, `// No support for: Action ${action.type}`]];
 
-  strings = strings.map((thisString) => {
-
-    return [
-      thisString[0],
-      thisString[1].trim().replace(/^ +/gm, '').replace(/(\r\n|\n|\r)/gm," ")
-    ];
-
-  });
+  strings = strings.map((thisString) => ([
+    thisString[0],
+    thisString[1].trim().replace(/^ +/gm, '').replace(/(\r\n|\n|\r)/gm," ")
+  ]));
 
   var finalString = "";
 
@@ -253,6 +249,11 @@ var actions = {
       return `
        .components["${component.name}"](variables, ${buildComponentActionParams(action, component)})
       `;
+    }
+  },
+  "EVAL": {
+    render: (action, selector, value, description, line, blocks, indent, meta) => {
+      return `.eval(\`${value}\`)`
     }
   }
   // "KEYDOWN": {

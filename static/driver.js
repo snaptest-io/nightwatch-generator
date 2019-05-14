@@ -108,18 +108,22 @@ module.exports.bindDriver = function(browser) {
     },
 
     "clearCaches": (localstorage, sessionstorage, description) => {
+
       browser.perform(() => comment(description));
+
       browser.deleteCookies();
 
-      browser.execute(prepStringFuncForExecute(`(function(localstorage, sessionstorage) {
-      if (action.localstorage) {
-        localStorage.clear();
-      }
-    
-      if (action.sessionstorage) {
-        sessionStorage.clear();
-      }
-    })()`), [localstorage, sessionstorage]);
+      browser.execute(prepStringFuncForExecute(`function(localstorage, sessionstorage) {
+        if (localstorage && window.localStorage) {
+          window.localStorage.clear();
+        }
+      
+        if (sessionstorage && window.sessionStorage) {
+          window.sessionStorage.clear();
+        }
+      }`), [localstorage, sessionstorage], (result) => {
+        browser.assert.ok(true, description)
+      });
 
       return browser;
     },
@@ -562,6 +566,24 @@ module.exports.bindDriver = function(browser) {
 
       return browser;
 
+    },
+    "eval": (value, variables, description) => {
+
+      browser.perform(() => comment(description));
+
+      // check for a successful browser execute.
+      browser.execute(prepStringFuncForExecute(`function(value, variables) {
+        try {
+          var success = eval(value)
+          return success;
+        } catch(e) {
+          return false;
+        }
+      }`), [value, variables], function(result, error) {
+        browser.assert.ok(result.value, description)
+      });
+
+      return browser;
     }
 
   };

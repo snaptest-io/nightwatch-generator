@@ -13,9 +13,8 @@ module.exports.bindComponents = function(browser) {
       "<%=variable.name%>": "<%=variable.defaultValue%>"<%= (idx < component.variables.length - 1? "," : "")%><% }); %>
     });
 
-    browser
+    return browser
 <%- component.generateActionBlock(6, " ") %>
-    return browser;
   }
 <% }); %>
 
