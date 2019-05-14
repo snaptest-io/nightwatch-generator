@@ -13,14 +13,12 @@ module.exports = {
     require('<%= relPathToRoot %>common/driver.js').bindDriver(browser);
     require('<%= relPathToRoot %>common/components.js').bindComponents(browser);
 <% } %>
-
-    var variables = Variables(browser);
-
-    var vars = variables.computeTestVars({<% test.variables.forEach((variable, idx) => { %>
+    var testVars = Variables.TestVars(browser, {<% test.variables.forEach((variable, idx) => { %>
       "<%=variable.name%>": "<%=variable.defaultValue%>"<%= (idx < test.variables.length - 1? "," : "")%><% }); %>
     });
 
     browser
+      .using(testVars)
 <%- test.generateActionBlock(6, " ") %>      .end();
 
   }

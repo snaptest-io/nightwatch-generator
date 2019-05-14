@@ -37,9 +37,9 @@ function generateLine(line, blocks, indent, meta) {
 
   if (actions[action.type]) {
 
-    var description = prefixVars(action.description || util.buildActionDescription(action));
-    var selector = prefixVars(action.selector || "");
-    var value = _.isString(action.value) ? prefixVars(action.value) : action.value;
+    var description = prepForArgString(action.description || util.buildActionDescription(action));
+    var selector = prepForArgString(action.selector || "");
+    var value = _.isString(action.value) ? prepForArgString(action.value) : action.value;
 
     var blockStrings = renderBlockWrapper(line, blocks, indent);
     strings = strings.concat(blockStrings);
@@ -138,7 +138,7 @@ var actions = {
   },
   "STYLE_ASSERT": {
     render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .elStyleIs(\`${selector}\`, \`${action.selectorType}\`, \`${prefixVars(action.style)}\`, \`${value}\`, \`${description}\`${buildEnding(line, blocks)}
+      .elStyleIs(\`${selector}\`, \`${action.selectorType}\`, \`${prepForArgString(action.style)}\`, \`${value}\`, \`${description}\`${buildEnding(line, blocks)}
     `
   },
   "MOUSEDOWN": {
@@ -178,7 +178,7 @@ var actions = {
   },
   "EXECUTE_SCRIPT": {
     render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .executeScript("${description}", \`${prefixVars(action.script)}\`)
+      .executeScript("${description}", \`${prepForArgString(action.script)}\`)
     `
   },
   "REFRESH": {
@@ -247,7 +247,7 @@ var actions = {
 
       if (!component) return [];
       return `
-       .components["${component.name}"](variables, ${buildComponentActionParams(action, component)})
+       .component("${component.name}", ${buildComponentActionParams(action, component)})
       `;
     }
   },
@@ -273,27 +273,8 @@ var actions = {
   // },
 };
 
-function prefixVars(string) {
-
-  // converts ${xyz} to ${vars.xyz}
-
-  var regex = new RegExp("\\$\\{(.*?)\\}", "g");
-
-  function prefixNext(myString) {
-
-    var info = regex.exec(myString)
-    var splitString = myString.split("");
-
-    if (info && info.index > -1) {
-      splitString.splice(info.index + 2, info[1].length, "vars." + info[1]);
-      var mergedString = splitString.join("");
-      return prefixNext(mergedString)
-    } else {
-      return myString;
-    }
-  }
-
-  return prefixNext(string);
+function prepForArgString(string) {
+  return string.replace(new RegExp("\\$", 'g'), "\\$");
 }
 
 function renderBlockWrapper(line, blocks) {

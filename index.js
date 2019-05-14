@@ -20,8 +20,7 @@ function generate() {
     { path: ["suites"] },
     { path: ["common", "environments.json"], content: JSON.stringify(envs, null, 2) },
     { path: ["common", "driver.js"], content: fs.readFileSync(`${__dirname}/static/driver.js`, 'utf8') },
-    { path: ["common", "variables.js"], content: fs.readFileSync(`${__dirname}/static/variables.js`, 'utf8') },
-    // { path: ["components", "components.js"], content: " " }
+    { path: ["common", "variables.js"], content: fs.readFileSync(`${__dirname}/static/variables.js`, 'utf8') }
   ];
 
   // Hang the various test suites upon the in-memory file structure.

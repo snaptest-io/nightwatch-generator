@@ -9,9 +9,8 @@
 var _ = require('lodash');
 var envs = require('./environments.json');
 
-module.exports = (browser) => {
+module.exports.TestVars = (browser, defaultVars) => {
 
-  // var computed = {};
   var selectedEnvId = getSelectedEnvIdFromConfig(browser);
 
   var testVars = [];
@@ -24,15 +23,30 @@ module.exports = (browser) => {
     {key: "random3", value: parseInt(Math.random() * 10000000)}
   ];
 
+  var reserved = ["random", "random1", "random2", "random3"];
+
   envVars = combineVarsWith(envVars, system);
   envVars = combineVarsWith(envVars, envVars, false);
 
-  return {
-    computeTestVars: (_testVars) => {
+  testVars = Object.keys(defaultVars).map((key) => ({key: key, value: defaultVars[key]}));
+  testVars = combineVarsWith(testVars, system);
+  testVars = combineVarsWith(testVars, testVars, false);
 
-      testVars = Object.keys(_testVars).map((key) => ({key: key, value: _testVars[key]}));
+  return {
+
+    updateAll: (variables) => {
+
+      // check if not system...
+      testVars = Object.keys(variables)
+        .filter((key) => reserved.indexOf(key) === -1)
+        .map((key) => ({key: key, value: variables[key]}));
+
       testVars = combineVarsWith(testVars, system);
       testVars = combineVarsWith(testVars, testVars, false);
+
+    },
+
+    getAllObject: () => {
 
       return Object.assign({},
         spreadVariables(system),
@@ -41,12 +55,25 @@ module.exports = (browser) => {
       );
 
     },
+
+    getAll: () => {
+
+      var computed = Object.assign({},
+        spreadVariables(system),
+        spreadVariables(testVars),
+        spreadVariables(envVars)
+      );
+
+      return Object.keys(computed).map((key) => ({key: key, value: computed[key]}));
+
+    },
+
     computeCompVars: (_instanceVars, _defaultVars) => {
 
       var instanceVars = Object.keys(_instanceVars).map((key) => ({key: key, value: _instanceVars[key]}));
       var defaultVars = Object.keys(_defaultVars).map((key) => ({key: key, value: _defaultVars[key]}));
 
-      return Object.assign({},
+      var computed = Object.assign({},
         spreadVariables(system),
         spreadVariables(testVars),
         spreadVariables(defaultVars),
@@ -54,10 +81,26 @@ module.exports = (browser) => {
         spreadVariables(instanceVars)
       );
 
+      return Object.keys(computed).map((key) => ({key: key, value: computed[key]}));
+
     }
   }
 
 };
+
+module.exports.CompVars = (testVars, defaultVars, instanceVars) => {
+
+  var testVars = testVars;
+
+  return {
+    getAll: () => {
+      return testVars.computeCompVars(instanceVars, defaultVars)
+    }
+  }
+
+}
+
+
 
 function combineVarsWith(_combinee, combiner, allowDups = true) {
 
@@ -65,6 +108,8 @@ function combineVarsWith(_combinee, combiner, allowDups = true) {
 
   combiner.forEach((replacer) => {
     combinee.forEach((variable) => {
+
+      if (typeof variable.value !== "string") return;
 
       if (allowDups) {
         var myRegEx = new RegExp(`\\$\\{${replacer.key}\\}`, "g");
