@@ -17,7 +17,6 @@ module.exports.TestVars = (browser, defaultVars) => {
   var envVars = selectedEnvId ? getEnvVars(selectedEnvId) : [];
 
   var system = [
-    {key: "random", value: parseInt(Math.random() * 10000000)},
     {key: "random1", value: parseInt(Math.random() * 10000000)},
     {key: "random2", value: parseInt(Math.random() * 10000000)},
     {key: "random3", value: parseInt(Math.random() * 10000000)}
@@ -31,6 +30,10 @@ module.exports.TestVars = (browser, defaultVars) => {
   testVars = Object.keys(defaultVars).map((key) => ({key: key, value: defaultVars[key]}));
   testVars = combineVarsWith(testVars, system);
   testVars = combineVarsWith(testVars, testVars, false);
+
+  function getSystemDynamic() {
+    return [{key: "random", value: parseInt(Math.random() * 10000000)}];
+  }
 
   return {
 
@@ -49,6 +52,7 @@ module.exports.TestVars = (browser, defaultVars) => {
     getAllObject: () => {
 
       return Object.assign({},
+        spreadVariables(getSystemDynamic()),
         spreadVariables(system),
         spreadVariables(testVars),
         spreadVariables(envVars)
@@ -59,6 +63,7 @@ module.exports.TestVars = (browser, defaultVars) => {
     getAll: () => {
 
       var computed = Object.assign({},
+        spreadVariables(getSystemDynamic()),
         spreadVariables(system),
         spreadVariables(testVars),
         spreadVariables(envVars)

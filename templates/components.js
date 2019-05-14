@@ -6,10 +6,7 @@ var Variables = require('./variables.js');
 module.exports.bindComponents = function(browser) {
 
   browser.components = {};
-  browser.compVarStack = [];
-
-
-<% components.forEach((component, idx) => { %>
+  browser.compVarStack = [];<% components.forEach((component, idx) => { %>
 
   browser.components["<%= component.name %>"] = {
     defaults: {<% component.variables.forEach((variable, idx) => { %>
