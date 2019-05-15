@@ -1,4 +1,3 @@
-var util = require('../utils/util');
 var generateActionBlock = require('./actionBlock');
 var _ = require("lodash");
 var ejs = require('ejs');

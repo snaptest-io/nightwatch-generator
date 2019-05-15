@@ -3,7 +3,6 @@
 **************************************** */
 
 var _ = require('lodash');
-var util = require('../utils/util');
 
 module.exports = function(test, meta, indent) {
 
@@ -27,6 +26,8 @@ module.exports = function(test, meta, indent) {
 
 };
 
+
+
 function generateLine(line, blocks, indent, meta) {
 
   var exclude = ["URL_CHANGE_INDICATOR", "PUSHSTATE"];
@@ -37,19 +38,25 @@ function generateLine(line, blocks, indent, meta) {
 
   if (actions[action.type]) {
 
-    var description = prepForArgString(action.description || util.buildActionDescription(action));
     var selector = prepForArgString(action.selector || "");
     var value = _.isString(action.value) ? prepForArgString(action.value) : action.value;
 
-    var blockStrings = renderBlockWrapper(line, blocks, indent);
-    strings = strings.concat(blockStrings);
+    var skipAction = shouldSkip(line, blocks);
+    var preActionStrings = renderPreActionStrings(line, blocks);
+    var postActionStrings = renderPostActionStrings(line, blocks);
 
-    var renderedString = actions[action.type].render(action, selector, value, description, line, blocks, indent, meta);
+    if (!skipAction) {
+      strings = preActionStrings;
 
-    if (typeof renderedString === 'string') {
-      strings.push([0, renderedString]);
-    } else {
-      strings = strings.concat(renderedString);
+      var renderedString = actions[action.type].render(action, selector, value, line, blocks, indent, meta);
+
+      if (typeof renderedString === 'string') {
+        strings.push([0, renderedString]);
+      } else {
+        strings = strings.concat(renderedString);
+      }
+
+      strings = strings.concat(postActionStrings);
     }
 
   }
@@ -79,132 +86,110 @@ function generateLine(line, blocks, indent, meta) {
 
 var actions = {
   "FULL_PAGELOAD": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .url(\`${value}\`, ${action.width}, ${action.height}, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.loadPage(${buildActionParams(action, { url: value, width: `${action.width}`, height: `${action.width}`})})`
   },
   "PAUSE": {
-    render: (action, selector, value, description, line ) => `
-      .pause(${value})
-    `
+    render: (action, selector, value, line ) =>
+      `.pause(${buildActionParams(action, { value })})`
   },
   "INPUT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .changeInput(\`${selector}\`, \`${action.selectorType}\`, \`${value}\`, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.changeInput(${buildActionParams(action, {value, selector, selectorType: action.selectorType})})`
   },
   "EL_PRESENT_ASSERT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .elementPresent(\`${selector}\`, \`${action.selectorType}\`, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.elementPresent(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
   "EL_NOT_PRESENT_ASSERT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .elementNotPresent(\`${selector}\`, \`${action.selectorType}\`, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.elementNotPresent(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
   "TEXT_ASSERT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => {
+    render: (action, selector, value, line, blocks, indent, meta) => {
       if (action.regex) {
-        return `
-          .elTextIs(\`${selector}\`, \`${action.selectorType}\`, new RegExp(\`${value}\`, "g"), \`${description}\`${buildEnding(line, blocks)}`;
+        return `.elTextIs(${buildActionParams(action, {value, selector, selectorType: action.selectorType, regex: true})})`;
       } else {
-        return`
-          .elTextIs(\`${selector}\`, \`${action.selectorType}\`, \`${value}\`, \`${description}\`${buildEnding(line, blocks)}`;
+        return `.elTextIs(${buildActionParams(action, {value, selector, selectorType: action.selectorType})})`
       }
     }
   },
   "VALUE_ASSERT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => {
+    render: (action, selector, value, line, blocks, indent, meta) => {
       if (action.regex) {
-        return `
-        .inputValueAssert(\`${selector}\`, \`${action.selectorType}\`, new RegExp(\`${value}\`, "g"), \`${description}\`${buildEnding(line, blocks)}`;
+        return `.inputValueAssert(${buildActionParams(action, {value, selector, selectorType: action.selectorType, regex: true})})`
       } else {
-        return  `
-        .inputValueAssert(\`${selector}\`, \`${action.selectorType}\`, \`${value}\`, \`${description}\`${buildEnding(line, blocks)}`;
+        return `.inputValueAssert(${buildActionParams(action, {value, selector, selectorType: action.selectorType})})`
       }
     }
   },
   "PATH_ASSERT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => {
+    render: (action, selector, value, line, blocks, indent, meta) => {
       if (action.regex) {
-        return `
-        .pathIs(new RegExp(\`${value}\`, "g"), \`${description}\`${buildEnding(line, blocks)}`;
+        return `.pathIs(${buildActionParams(action, {value, regex: true})})`
       } else {
-        return `
-        .pathIs(\`${action.value}\`, \`${description}\`${buildEnding(line, blocks)}`;
+        return `.pathIs(${buildActionParams(action, {value})})`
       }
     }
   },
   "STYLE_ASSERT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .elStyleIs(\`${selector}\`, \`${action.selectorType}\`, \`${prepForArgString(action.style)}\`, \`${value}\`, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.elStyleIs(${buildActionParams(action, {value, selector, selectorType: action.selectorType})})`
   },
   "MOUSEDOWN": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .click(\`${selector}\`, \`${action.selectorType}\`, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.click(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
   "MOUSEOVER": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .moveToElement(\`${selector}\`, \`${action.selectorType}\`, 1, 1, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.moveToElement(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
   "SUBMIT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .formSubmit(\`${selector}\`, \`${action.selectorType}\`, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.formSubmit(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
   "CLEAR_COOKIES": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .deleteCookies()
-    `
+    render: (action, selector, value, line, blocks, indent, meta) => `.deleteCookies()`
   },
   "CLEAR_CACHES": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .clearCaches(${action.localstorage}, ${action.sessionstorage}, \`${description}\`)
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.clearCaches(${buildActionParams(action, {localstorage: action.localstorage, sessionstorage: action.sessionstorage })})`
   },
   "FOCUS": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .focusOnEl(\`${selector}\`, \`${action.selectorType}\`, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.focusOnEl(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
   "BLUR": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .blurOffEl(\`${selector}\`, \`${action.selectorType}\`, \`${description}\`${buildEnding(line, blocks)}
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.blurOffEl(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
   "EXECUTE_SCRIPT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .executeScript("${description}", \`${prepForArgString(action.script)}\`)
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.executeScript(${buildActionParams(action, {value: `\`${prepForArgString(action.script)}\``})})`
   },
   "REFRESH": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .refresh(\`${description}\`)
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.refresh(${buildActionParams(action, {})})`
   },
   "BACK": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .back(\`${description}\`)
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.back(${buildActionParams(action, {})})`
   },
   "FORWARD": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => `
-      .forward(\`${description}\`)
-    `
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.forward(${buildActionParams(action, {})})`
   },
   "IF": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => {
+    render: (action, selector, value, line, blocks, indent, meta) => {
 
       var lineString = "browser.if" + generateLine({
         action: action.value,
         lastAction: {},
         nextAction: {},
         block: action.type,
-        skipIndent: true
+        skipIndent: true,
+        skipPrefix: true,
+        skipPostfix: true,
       }, blocks, indent, meta) + ",";
 
       return [
@@ -215,14 +200,16 @@ var actions = {
     }
   },
   "ELSEIF": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => {
+    render: (action, selector, value, line, blocks, indent, meta) => {
 
       var lineString = "browser.elseif" + generateLine({
         action: action.value,
         lastAction: {},
         nextAction: {},
         block: action.type,
-        skipIndent: true
+        skipIndent: true,
+        skipPrefix: true,
+        skipPostfix: true
       }, blocks, indent, meta) + ",";
 
       return [
@@ -234,7 +221,7 @@ var actions = {
     }
   },
   "ELSE": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => {
+    render: (action, selector, value, line, blocks, indent, meta) => {
       return [
         [-1, "}),"],
         [-1, "browser.else((b) => { b"]
@@ -242,7 +229,7 @@ var actions = {
     }
   },
   "COMPONENT": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => {
+    render: (action, selector, value, line, blocks, indent, meta) => {
       var component = _.find(meta.components, {id: action.componentId});
 
       if (!component) return [];
@@ -252,32 +239,57 @@ var actions = {
     }
   },
   "EVAL": {
-    render: (action, selector, value, description, line, blocks, indent, meta) => {
-      return `.eval(\`${value}\`)`
+    render: (action, selector, value, line, blocks, indent, meta) => {
+      return `.eval(${buildActionParams(action, { value })})`
     }
   }
   // "KEYDOWN": {
-  //   render: (action, selector, value, description, line, blocks, indent, meta) => `
+  //   render: (action, selector, value, line, blocks, indent, meta) => `
   //     KeyDown(${genSelector(action)}, ${buildValueString(action.selector)}, ${buildDescription(description)}${buildEnding(line, blocks)};
   //   `
   // },
   // "DOUBLECLICK": {
-  //   render: (action, selector, value, description, line, blocks, indent, meta) => `
+  //   render: (action, selector, value, line, blocks, indent, meta) => `
   //     DoubleClick(${genSelector(action)}, ${buildValueString(action.selector)}, ${buildValueString(action.selectorType)}, ${buildDescription(description)}${buildEnding(line, blocks)};
   //   `
   // },
   // "DIALOG": {
-  //   render: (action, selector, value, description, line, blocks, indent, meta) => `
+  //   render: (action, selector, value, line, blocks, indent, meta) => `
   //     SetDialogResponses(${buildBooleanString(action.alert)}, ${action.confirm ? `"accept"` : `"reject"`}, ${action.prompt ? `"${action.promptResponse}"` : "null"}, ${buildDescription(description)}${buildEnding(line, blocks)};
   //   `
   // },
 };
 
 function prepForArgString(string) {
-  return string.replace(new RegExp("\\$", 'g'), "\\$");
+  // return string;
+  return string.replace(new RegExp("\\$", 'g'), "\\$").replace(new RegExp("`", 'g'), "\\`")
 }
 
-function renderBlockWrapper(line, blocks) {
+function renderPostActionStrings(line, blocks) {
+
+  if (line.skipPostfix) {
+    return [];
+  }
+
+  if (_.isEmpty(line.nextAction) && line.action.indent > 0) {
+
+    var closingEndings = [];
+
+    for (var i = 0; i < blocks.length; i++) {
+      closingEndings.push([((i + 1) * -1) - 0, "})"]);
+      closingEndings.push([((i + 1) * -1) - 1, ")"]);
+    }
+
+    return closingEndings;
+
+  }
+
+  return [];
+}
+
+function renderPreActionStrings(line, blocks) {
+
+  if (line.skipPrefix) return [];
 
   // if we're stepping up
   if (line.nextAction.indent > line.action.indent) {
@@ -314,13 +326,36 @@ function renderBlockWrapper(line, blocks) {
 
 }
 
-function buildEnding(line) {
+function shouldSkip(line, blocks) {
+  return false;
+}
 
-  if (line.action.timeout) {
-    return ", " + line.action.timeout + ")";
-  } else {
-    return ", null)"
-  }
+function buildActionParams(action, keyValues) {
+
+  var resultObject = Object.assign({}, {
+    ...!!action.description && {description: action.description},
+    ...!!action.timeout && {timeout: action.timeout},
+    ...!!action.continueOnFail && {optional: action.continueOnFail}
+  }, keyValues);
+
+  var result = [];
+
+  Object.keys(resultObject)
+    .sort((a, b) => {
+      if (["description", "timeout", "optional"].indexOf(a) !== -1) return 1;
+    })
+    .forEach((key) => {
+
+      var value =
+        typeof resultObject[key] === "string" ? `\`${resultObject[key]}\`` :
+        typeof resultObject[key] === "number" ? `${resultObject[key].toString()}` :
+          resultObject[key];
+
+      result.push(`${key}: ${value}`)
+
+    });
+
+  return `{${result.join(", ")}}`;
 
 }
 

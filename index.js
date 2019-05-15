@@ -1,34 +1,27 @@
 var writeFiles = require('./writeFiles');
-var suiteGenerator = require('./generate/suites');
+var suitesGenerator = require('./generate/suites');
 var componentGenerator = require('./generate/component');
+var envsGenerator = require('./generate/envs');
 var fs = require('fs-extra');
 
 function generate() {
 
-  var envs = this.envs.map((env) => ({
-    name: env.name,
-    id: env.id,
-    variables: env.variables.map((variable) => ({
-      name: variable.name,
-      type: variable.type,
-      defaultValue: variable.defaultValue,
-    }))
-  }));
-
   // Initial in-memory file structure
   var fileStructure = [
     { path: ["suites"] },
-    { path: ["common", "environments.json"], content: JSON.stringify(envs, null, 2) },
     { path: ["common", "driver.js"], content: fs.readFileSync(`${__dirname}/static/driver.js`, 'utf8') },
     { path: ["common", "variables.js"], content: fs.readFileSync(`${__dirname}/static/variables.js`, 'utf8') },
     { path: ["common", "hooks.js"], content: fs.readFileSync(`${__dirname}/static/hooks.js`, 'utf8') }
   ];
 
   // Hang the various test suites upon the in-memory file structure.
-  suiteGenerator.generateFlat(this, fileStructure, ["suites"]);
+  envsGenerator.generateJson(this, fileStructure, ["common"]);
 
   // Hang the various test suites upon the in-memory file structure.
-  componentGenerator.generateFile(fileStructure, this, ["common"]);
+  suitesGenerator.generateFlat(this, fileStructure, ["suites"]);
+
+  // Hang the various test suites upon the in-memory file structure.
+  componentGenerator.generateFile(this, fileStructure, ["common"]);
 
   // Write to disc
   writeFiles(fileStructure, this);

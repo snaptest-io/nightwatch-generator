@@ -82,22 +82,29 @@ module.exports.bindDriver = function(browser) {
   };
 
   browser.snapActions = {
-    "url": (value, width, height, description) => {
+    "loadPage": (args) => {
+
+      var { url, width, height, description = `Load page at... ${args.url}`, cb } = args;
+
       browser.perform(() => comment(renderWithVars(description, getVars(browser))));
 
       browser.perform(() => {
 
-        var url = renderWithVars(value, getVars(browser));
+        var renderedUrl = renderWithVars(url, getVars(browser));
 
-        oldUrl(url);
+        oldUrl(renderedUrl);
         browser.resizeWindow(width, height);
+
+        if (typeof cb === "function") cb(true);
 
       });
 
       return browser;
     },
 
-    "back": (description) => {
+    "back": (args) => {
+
+      const { description = `Navigating back...`, cb } = args;
 
       browser.perform(() => comment(description));
       browser.perform(() => {
@@ -109,7 +116,9 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "elementPresent": (selector, selectorType = "CSS", description, timeout, cb) => {
+    "elementPresent": (args) => {
+
+      var { selector, selectorType = "CSS", description, timeout, cb } = args;
 
       browser.perform(() => {
 
@@ -134,7 +143,10 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "refresh": (description) => {
+    "refresh": (args) => {
+
+      var { description } = args;
+
       browser.perform(() => comment(description));
       browser.perform(() => {
         oldRefresh();
@@ -143,7 +155,9 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "forward": (description) => {
+    "forward": (args) => {
+
+      var { description } = args;
 
       browser.perform(() => comment(description));
 
@@ -155,10 +169,13 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "clearCaches": (localstorage, sessionstorage, description) => {
+    "clearCaches": (args) => {
+
+      var { localstorage, sessionstorage, description } = args;
 
       browser.perform(() => comment(description));
       browser.perform(() => {
+
         browser.deleteCookies();
 
         browser.execute(prepStringFuncForExecute(`function(localstorage, sessionstorage) {
@@ -179,7 +196,9 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "pathIs": (value, description, timeout) => {
+    "pathIs": (args) => {
+
+      var { value, description, timeout } = args;
 
       browser.perform(() => {
 
@@ -221,9 +240,11 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "executeScript": (description, value) => {
-      browser.perform(() => comment(description));
+    "executeScript": (args) => {
 
+      var { description, value } = args;
+
+      browser.perform(() => comment(description));
       browser.perform(() => {
 
         var script = renderWithVars(value, getVars(browser));
@@ -238,7 +259,10 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "switchToWindow": (windowIndex, description) => {
+    "switchToWindow": (args) => {
+
+      var { windowIndex, description } = args;
+
       browser.perform(() => comment(description));
 
       browser.perform(() => {
@@ -250,7 +274,10 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "scrollWindow": (x, y, description) => {
+    "scrollWindow": (args) => {
+
+      var { x, y, description } = args;
+
       browser.perform(() => comment(description));
 
       browser.perform(() => {
@@ -262,7 +289,9 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "scrollElement": (selector, selectorType = "CSS", x, y, description, timeout) => {
+    "scrollElement": (args) => {
+
+      var { selector, selectorType = "CSS", x, y, description, timeout } = args;
 
       browser.perform(() => {
         var techDescription = stringFormat("(Scrolling element at '%s' using '%s')", selector, selectorType);
@@ -285,7 +314,9 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "scrollWindowToElement": (selector, selectorType = "CSS", description, timeout) => {
+    "scrollWindowToElement": (args) => {
+
+      var { selector, selectorType = "CSS", description, timeout } = args;
 
       browser.perform(() => {
         var techDescription = stringFormat("(Scrolling window to el '%s' using '%s')", selector, selectorType);
@@ -310,7 +341,9 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "click": (selector, selectorType = "CSS", description, timeout) => {
+    "click": (args) => {
+
+      var { selector, selectorType = "CSS", description, timeout } = args;
 
       browser.perform(() => {
 
@@ -351,7 +384,9 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "changeInput": (selector, selectorType = "CSS", value, description, timeout) => {
+    "changeInput": (args) => {
+
+      var { selector, selectorType = "CSS", value, description, timeout } = args;
 
       browser.perform(() => {
 
@@ -397,7 +432,9 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "elStyleIs": (selector, selectorType = "CSS", style, value, description, timeout) => {
+    "elStyleIs": (args) => {
+
+      var { selector, selectorType = "CSS", style, value, description, timeout } = args;
 
       browser.perform(() => {
 
@@ -437,7 +474,9 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "inputValueAssert": (selector, selectorType = "CSS", _value, description, timeout) => {
+    "inputValueAssert": (args) => {
+
+      var { selector, selectorType = "CSS", _value, description, timeout } = args;
 
       browser.perform(() => {
 
@@ -487,38 +526,10 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "_elementPresent": (selector, selectorType = "CSS", description, timeout, onFail = noop, onSuccess = noop) => {
+    "elementNotPresent": (args) => {
 
-      var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
-      var currentAttempt = 0;
+      var { selector, selectorType = "CSS", description, timeout } = args;
 
-      function checkforEl(selector) {
-        browser.execute(
-          prepStringFuncForExecute(`function(selector, selectorType) {
-            ${snptGetElement}
-            return !!snptGetElement(selector, selectorType);
-          }`), [selector, selectorType], function(result) {
-
-            if (!result.value && currentAttempt < attempts) {
-              currentAttempt++;
-              browser.pause(POLLING_RATE);
-              checkforEl(selector);
-            } else if (!result.value) {
-              onFail();
-            } else {
-              onSuccess();
-            }
-
-          });
-      }
-
-      checkforEl(selector);
-
-      return browser;
-
-    },
-
-    "elementNotPresent": (selector, selectorType = "CSS", description, timeout) => {
       browser.perform(() => comment(description));
 
       browser.perform(() => {
@@ -528,7 +539,9 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "focusOnEl": (selector, selectorType = "CSS", description, timeout) => {
+    "focusOnEl": (args) => {
+
+      var { selector, selectorType = "CSS", description, timeout } = args;
 
       browser.perform(() => {
         var techDescription = stringFormat("(Focus '%s' at '%s' using '%s')", value, selector, selectorType);
@@ -555,7 +568,9 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "formSubmit": (selector, selectorType = "CSS", description, timeout) => {
+    "formSubmit": (args) => {
+
+      var { selector, selectorType = "CSS", description, timeout } = args;
 
       browser.perform(() => {
         var techDescription = stringFormat("(Form Submit at '%s' using '%s')", selector, selectorType);
@@ -583,7 +598,9 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "blurOffEl": (selector, selectorType = "CSS", description, timeout) => {
+    "blurOffEl": (args) => {
+
+      var { selector, selectorType = "CSS", description, timeout } = args;
 
       browser.perform(() => {
         var techDescription = stringFormat("(blur '%s' using '%s')", selector, selectorType);
@@ -611,31 +628,9 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "_getElText": (selector, selectorType = "CSS", onSuccess = noop) => {
+    "elTextIs": (args) => {
 
-      browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
-  
-      ${snptGetElement}
-  
-      return (function(element) {
-        if (!element) return null;
-        var text = "";
-        for (var i = 0; i < element.childNodes.length; ++i)
-          if (element.childNodes[i].nodeType === 3)
-            if (element.childNodes[i].textContent)
-              text += element.childNodes[i].textContent;
-        text = text.replace(/(\\r\\n|\\n|\\r)/gm, "");
-        return text.trim();
-      })(snptGetElement(selector, selectorType));
-    }`), [selector, selectorType], function(result) {
-        onSuccess(result.value);
-      });
-
-      return browser;
-
-    },
-
-    "elTextIs": (selector, selectorType = "CSS", value, description, timeout) => {
+      var { selector, selectorType = "CSS", value, description, timeout } = args;
 
       browser.perform(() => {
 
@@ -669,7 +664,10 @@ module.exports.bindDriver = function(browser) {
       return browser;
 
     },
-    "eval": (value, description) => {
+
+    "eval": (args) => {
+
+      var { value, description } = args;
 
       browser.perform(() => comment(description));
 
@@ -697,6 +695,60 @@ module.exports.bindDriver = function(browser) {
       });
 
       return browser;
+    },
+
+    "_getElText": (selector, selectorType = "CSS", onSuccess = noop) => {
+
+      browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+  
+      ${snptGetElement}
+  
+      return (function(element) {
+        if (!element) return null;
+        var text = "";
+        for (var i = 0; i < element.childNodes.length; ++i)
+          if (element.childNodes[i].nodeType === 3)
+            if (element.childNodes[i].textContent)
+              text += element.childNodes[i].textContent;
+        text = text.replace(/(\\r\\n|\\n|\\r)/gm, "");
+        return text.trim();
+      })(snptGetElement(selector, selectorType));
+    }`), [selector, selectorType], function(result) {
+        onSuccess(result.value);
+      });
+
+      return browser;
+
+    },
+    "_elementPresent": (selector, selectorType = "CSS", description, timeout, onFail = noop, onSuccess = noop) => {
+
+      var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
+      var currentAttempt = 0;
+
+      function checkforEl(selector) {
+        browser.execute(
+          prepStringFuncForExecute(`function(selector, selectorType) {
+            ${snptGetElement}
+            return !!snptGetElement(selector, selectorType);
+          }`), [selector, selectorType], function(result) {
+
+            if (!result.value && currentAttempt < attempts) {
+              currentAttempt++;
+              browser.pause(POLLING_RATE);
+              checkforEl(selector);
+            } else if (!result.value) {
+              onFail();
+            } else {
+              onSuccess();
+            }
+
+          });
+      }
+
+      checkforEl(selector);
+
+      return browser;
+
     }
 
   };
