@@ -140,10 +140,6 @@ var actions = {
     render: (action, selector, value, line, blocks, indent, meta) =>
       `.click(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
-  "MOUSEOVER": {
-    render: (action, selector, value, line, blocks, indent, meta) =>
-      `.moveToElement(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
-  },
   "SUBMIT": {
     render: (action, selector, value, line, blocks, indent, meta) =>
       `.formSubmit(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
@@ -165,7 +161,7 @@ var actions = {
   },
   "EXECUTE_SCRIPT": {
     render: (action, selector, value, line, blocks, indent, meta) =>
-      `.executeScript(${buildActionParams(action, {value: `\`${prepForArgString(action.script)}\``})})`
+      `.executeScript(${buildActionParams(action, {value: `${prepForArgString(action.script)}`})})`
   },
   "REFRESH": {
     render: (action, selector, value, line, blocks, indent, meta) =>
@@ -243,6 +239,10 @@ var actions = {
       return `.eval(${buildActionParams(action, { value })})`
     }
   }
+  // "MOUSEOVER": {
+  //   render: (action, selector, value, line, blocks, indent, meta) =>
+  //     `.moveToElement(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
+  // },
   // "KEYDOWN": {
   //   render: (action, selector, value, line, blocks, indent, meta) => `
   //     KeyDown(${genSelector(action)}, ${buildValueString(action.selector)}, ${buildDescription(description)}${buildEnding(line, blocks)};
@@ -333,7 +333,7 @@ function shouldSkip(line, blocks) {
 function buildActionParams(action, keyValues) {
 
   var resultObject = Object.assign({}, {
-    ...!!action.description && {description: action.description},
+    ...!!action.description && {description: prepForArgString(action.description)},
     ...!!action.timeout && {timeout: action.timeout},
     ...!!action.continueOnFail && {optional: action.continueOnFail}
   }, keyValues);

@@ -84,7 +84,7 @@ module.exports.bindDriver = function(browser) {
   browser.snapActions = {
     "loadPage": (args) => {
 
-      var { url, width, height, description, cb = noop, optional = false, timeout } = args;
+      var { url, width, height, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(renderWithVars(description, getVars(browser))));
 
@@ -95,7 +95,7 @@ module.exports.bindDriver = function(browser) {
         oldUrl(renderedUrl);
         browser.resizeWindow(width, height);
 
-        if (typeof cb === "function") cb(true);
+        if (cb) cb(true);
 
       });
 
@@ -104,13 +104,13 @@ module.exports.bindDriver = function(browser) {
 
     "back": (args) => {
 
-      const { description, cb = noop, optional = false, timeout } = args;
+      const { description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(description));
       browser.perform(() => {
         browser.pause(5);
         oldBack();
-        if (typeof cb === "function") cb(true);
+        if (cb) cb(true);
       });
 
       return browser;
@@ -119,23 +119,18 @@ module.exports.bindDriver = function(browser) {
 
     "elementPresent": (args) => {
 
-      var { selector, selectorType = "CSS", description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
 
         var techDescription = stringFormat("(Element exists' at '%s' using '%s')", selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
-          if (cb) {
-            cb(false);
-            return;
-          }
+          if (cb) return cb(false);
           browser.assert.ok(false, stringFormat("'%s' - Couldn't find element. %s", description, techDescription));
         }, () => {
-          if (cb) {
-            cb(true)
-          }
           browser.assert.ok(true, stringFormat("'%s' - %s", description, techDescription));
+          if (cb) cb(true);
         });
 
       });
@@ -146,11 +141,12 @@ module.exports.bindDriver = function(browser) {
 
     "refresh": (args) => {
 
-      var { description, cb = noop, optional = false, timeout } = args;
+      var { description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(description));
       browser.perform(() => {
         oldRefresh();
+        if (cb) cb(true);
       });
 
       return browser;
@@ -158,12 +154,13 @@ module.exports.bindDriver = function(browser) {
 
     "forward": (args) => {
 
-      var { description, cb = noop, optional = false, timeout } = args;
+      var { description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(description));
 
       browser.perform(() => {
         oldForward();
+        if (cb) cb(true);
       });
 
       return browser;
@@ -172,7 +169,7 @@ module.exports.bindDriver = function(browser) {
 
     "clearCaches": (args) => {
 
-      var { localstorage, sessionstorage, description, cb = noop, optional = false, timeout } = args;
+      var { localstorage, sessionstorage, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(description));
       browser.perform(() => {
@@ -188,7 +185,8 @@ module.exports.bindDriver = function(browser) {
             window.sessionStorage.clear();
           }
         }`), [localstorage, sessionstorage], () => {
-          browser.assert.ok(true, description)
+          browser.assert.ok(true, description);
+          if (cb) cb(true);
         });
 
       });
@@ -199,11 +197,12 @@ module.exports.bindDriver = function(browser) {
 
     "pathIs": (args) => {
 
-      var { value, description, cb = noop, optional = false, timeout } = args;
+      var { value, description, regex = false, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
 
         var pathname = renderWithVars(value, getVars(browser));
+        if (regex) pathname = new RegExp(pathname, "g");
         var techDescription = stringFormat(" (Path matches '%s')", pathname);
         var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
         var currentAttempt = 0;
@@ -217,7 +216,10 @@ module.exports.bindDriver = function(browser) {
         }`), [], function(result) {
             if (result.value.readyState === "complete" && (pathname instanceof RegExp ? pathname.test(result.value.pathname) : result.value.pathname === pathname)) {
               browser.assert.ok(true, description + techDescription)
+              if (cb) cb(true);
             } else if(currentAttempt === attempts) {
+              if (cb) return cb(false);
+              if (optional) return browser.assert.ok(true, "OPTIONAL FAILED: " + description + techDescription);
               browser.assert.ok(false, description + techDescription)
             } else {
               currentAttempt++;
@@ -243,7 +245,7 @@ module.exports.bindDriver = function(browser) {
 
     "executeScript": (args) => {
 
-      var { value, description, cb = noop, optional = false, timeout } = args;
+      var { value, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(description));
       browser.perform(() => {
@@ -254,6 +256,9 @@ module.exports.bindDriver = function(browser) {
           if (result) {
             browser.assert.ok(result, description)
           }
+
+          if (cb) cb(true);
+
         });
       });
 
@@ -262,13 +267,14 @@ module.exports.bindDriver = function(browser) {
 
     "switchToWindow": (args) => {
 
-      var { windowIndex, description, cb = noop, optional = false, timeout } = args;
+      var { windowIndex, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(description));
 
       browser.perform(() => {
         browser.windowHandles(function(result) {
           browser.switchWindow(result.value[windowIndex]);
+          if (cb) cb(true);
         });
       });
 
@@ -277,14 +283,16 @@ module.exports.bindDriver = function(browser) {
 
     "scrollWindow": (args) => {
 
-      var { x, y, description, cb = noop, optional = false, timeout } = args;
+      var { x, y, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(description));
 
       browser.perform(() => {
         browser.execute(prepStringFuncForExecute(`function(x, y) {
           window.scrollTo(x, y);
-        }`), [x, y], function(result) {});
+        }`), [x, y], function(result) {
+          if (cb) cb(true);
+        });
       });
 
       return browser;
@@ -292,12 +300,13 @@ module.exports.bindDriver = function(browser) {
 
     "scrollElement": (args) => {
 
-      var { selector, selectorType = "CSS", x, y, description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", x, y, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
         var techDescription = stringFormat("(Scrolling element at '%s' using '%s')", selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
+          if (cb) return cb(false);
           browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
         });
 
@@ -309,7 +318,9 @@ module.exports.bindDriver = function(browser) {
             el.scrollLeft = x;
             el.scrollTop = y;
           })(snptGetElement(selector, selectorType), x, y);
-        }`), [selector, selectorType, x, y], function(result) {});
+        }`), [selector, selectorType, x, y], (result) => {
+          if (cb) cb(true);
+        });
       });
 
       return browser;
@@ -317,12 +328,13 @@ module.exports.bindDriver = function(browser) {
 
     "scrollWindowToElement": (args) => {
 
-      var { selector, selectorType = "CSS", description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
         var techDescription = stringFormat("(Scrolling window to el '%s' using '%s')", selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
+          if (cb) return cb(false);
           browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
         });
 
@@ -336,7 +348,9 @@ module.exports.bindDriver = function(browser) {
               window.scrollTo(0, elsScrollY);
             }
           })(snptGetElement(selector, selectorType), value);
-        }`), [selector, selectorType]);
+        }`), [selector, selectorType], (result) => {
+          if (cb) cb(true);
+        });
       });
 
       return browser;
@@ -344,13 +358,14 @@ module.exports.bindDriver = function(browser) {
 
     "click": (args) => {
 
-      var { selector, selectorType = "CSS", description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
 
         var techDescription = stringFormat("(Click '%s' using '%s')", selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
+          if (cb) return cb(false);
           browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element to click. %s", description, techDescription));
         });
 
@@ -377,6 +392,9 @@ module.exports.bindDriver = function(browser) {
           if (result.state === "success") {
             browser.assert.ok(description + "; " + techDescription);
           }
+
+          if (cb) cb(true);
+
         });
 
       });
@@ -387,7 +405,7 @@ module.exports.bindDriver = function(browser) {
 
     "changeInput": (args) => {
 
-      var { selector, selectorType = "CSS", value, description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", value, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
 
@@ -395,6 +413,7 @@ module.exports.bindDriver = function(browser) {
         var techDescription = stringFormat("(Change input '%s' using '%s')", selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
+          if (cb) return cb(false);
           browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
         });
 
@@ -425,6 +444,7 @@ module.exports.bindDriver = function(browser) {
           if (result.state === "success") {
             browser.assert.ok(description + "; " + techDescription);
           }
+          if (cb) cb(true);
         });
 
       });
@@ -435,13 +455,14 @@ module.exports.bindDriver = function(browser) {
 
     "elStyleIs": (args) => {
 
-      var { selector, selectorType = "CSS", style, value, description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", style, value, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
 
         var techDescription = stringFormat("(Style is '%s' at '%s' using '%s')", value, selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
+          if (cb) return cb(false);
           browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
         });
 
@@ -456,7 +477,9 @@ module.exports.bindDriver = function(browser) {
         }`), [selector, selectorType, style], function(result) {
             if (value instanceof RegExp ? value.test(result.value) : value === result.value) {
               browser.assert.ok(true, description + techDescription)
+              if (cb) cb(true);
             } else if (currentAttempt === attempts) {
+              if (cb) return cb(false);
               browser.assert.ok(false, description + techDescription)
             } else {
               currentAttempt++;
@@ -477,15 +500,17 @@ module.exports.bindDriver = function(browser) {
 
     "inputValueAssert": (args) => {
 
-      var { selector, selectorType = "CSS", value, description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", value, regex = false, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
 
         var renderedValue = renderWithVars(value, getVars(browser));
-
+        if (regex) renderedValue = new RegExp(renderedValue, "g");
         var techDescription = stringFormat("(Assert value '%s' at '%s' using '%s')", renderedValue, selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
+          if (cb) return cb(false);
+          if (optional) return browser.assert.ok(true, stringFormat("OPTIONAL FAILED: '%s' - Couldn't find element. %s", description, techDescription));
           browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
         });
 
@@ -509,7 +534,10 @@ module.exports.bindDriver = function(browser) {
         }`), [selector, selectorType], function(result) {
             if (value instanceof RegExp ? value.test(result.value) : value === result.value) {
               browser.assert.ok(true, description)
+              if (cb) cb(true);
             } else if(currentAttempt === attempts) {
+              if (cb) return cb(false);
+              if (optional) return browser.assert.ok(true, stringFormat("OPTIONAL FAILED: '%s' - Couldn't find element. %s", description, techDescription));
               browser.assert.ok(false, description)
             } else {
               currentAttempt++;
@@ -529,12 +557,15 @@ module.exports.bindDriver = function(browser) {
 
     "elementNotPresent": (args) => {
 
-      var { selector, selectorType = "CSS", description, cb = noop, optional = false, timeout } = args;
+      // TODO: refactor to use selector strategies
+
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(description));
 
       browser.perform(() => {
         browser.waitForElementNotPresent(selector, timeout || TIMEOUT);
+        if (cb) cb(true);
       });
 
       return browser;
@@ -542,12 +573,14 @@ module.exports.bindDriver = function(browser) {
 
     "focusOnEl": (args) => {
 
-      var { selector, selectorType = "CSS", description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
-        var techDescription = stringFormat("(Focus '%s' at '%s' using '%s')", value, selector, selectorType);
+
+        var techDescription = stringFormat("(Focus on element with '%s' using '%s')", selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
+          if (cb) return cb(false);
           browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
         });
 
@@ -563,6 +596,8 @@ module.exports.bindDriver = function(browser) {
           if (result.state === "success") {
             browser.assert.ok(description + "; " + techDescription);
           }
+
+          if (cb) cb(true);
         });
       });
 
@@ -571,12 +606,13 @@ module.exports.bindDriver = function(browser) {
 
     "formSubmit": (args) => {
 
-      var { selector, selectorType = "CSS", description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
         var techDescription = stringFormat("(Form Submit at '%s' using '%s')", selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
+          if (cb) return cb(false);
           browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
         });
 
@@ -593,6 +629,7 @@ module.exports.bindDriver = function(browser) {
           if (result.state === "success") {
             browser.assert.ok(description + "; " + techDescription);
           }
+          if (cb) cb(true);
         });
       });
 
@@ -601,12 +638,13 @@ module.exports.bindDriver = function(browser) {
 
     "blurOffEl": (args) => {
 
-      var { selector, selectorType = "CSS", description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
         var techDescription = stringFormat("(blur '%s' using '%s')", selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
+          if (cb) return cb(false);
           browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
         });
 
@@ -623,6 +661,7 @@ module.exports.bindDriver = function(browser) {
           if (result.state === "success") {
             browser.assert.ok(description + "; " + techDescription);
           }
+          if (cb) cb(true);
         });
       });
 
@@ -631,16 +670,18 @@ module.exports.bindDriver = function(browser) {
 
     "elTextIs": (args) => {
 
-      var { selector, selectorType = "CSS", value, description, cb = noop, optional = false, timeout } = args;
+      var { selector, selectorType = "CSS", value, regex = false, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
 
         var assertText = renderWithVars(value, getVars(browser));
+        if (regex) assertText = new RegExp(assertText, "g");
         var techDescription = stringFormat("(Assert text matches '%s' at '%s' using '%s')", assertText.toString(), selector, selectorType);
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
-          if (optional) browser.assert.ok(true, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
-          else browser.assert.ok(false, stringFormat("Optional Fail: '%s' - Couldn't find element. %s", description, techDescription));
+          if (cb) return cb(false);
+          if (optional) return browser.assert.ok(true, stringFormat("OPTIONAL FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+          browser.assert.ok(false, stringFormat("Optional Fail: '%s' - Couldn't find element. %s", description, techDescription));
         });
 
         var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
@@ -650,11 +691,11 @@ module.exports.bindDriver = function(browser) {
           browser._getElText(selector, selectorType,  function(elsText) {
             if (assertText instanceof RegExp ? assertText.test(elsText) : assertText === elsText) {
               browser.assert.ok(true, description)
+              if (cb) cb(true);
             } else if(currentAttempt === attempts) {
-
-              if (optional) browser.assert.ok(true, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
-              else browser.assert.ok(false, stringFormat("Optional Fail: '%s' - Couldn't find element. %s", description, techDescription));
-              // browser.assert.ok(false, description)
+              if (cb) return cb(false);
+              if (optional) return browser.assert.ok(true, stringFormat("OPTIONAL FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+              browser.assert.ok(false, stringFormat("Optional Fail: '%s' - Couldn't find element. %s", description, techDescription));
             } else {
               currentAttempt++;
               browser.pause(POLLING_RATE);
@@ -672,7 +713,7 @@ module.exports.bindDriver = function(browser) {
 
     "eval": (args) => {
 
-      var { value, description, cb = noop, optional = false, timeout } = args;
+      var { value, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => comment(description));
 
@@ -694,8 +735,10 @@ module.exports.bindDriver = function(browser) {
 
           // find any new or updated variables...
           browser.vars.updateAll(result.value.vars);
+          browser.assert.ok(result.value.success, description);
 
-          browser.assert.ok(result.value.success, description)
+          if (cb) cb(true);
+
         });
       });
 
@@ -774,9 +817,9 @@ module.exports.bindDriver = function(browser) {
 
     browser.if[i] = (() => {
       var funcName = i;
-      return (...initialArgs) => () => ({
+      return (args) => () => ({
         execute: (b, cb) => {
-          b[funcName](...initialArgs, cb);
+          b[funcName]({...args, cb});
         },
         type: "if"
       })
@@ -784,8 +827,8 @@ module.exports.bindDriver = function(browser) {
 
     browser.elseif[i] = (() => {
       var funcName = i;
-      return (...initialArgs) => () => ({
-        execute: (b, cb) => { b[funcName](...initialArgs, cb); },
+      return (args) => () => ({
+        execute: (b, cb) => { b[funcName]({...args, cb}); },
         type: "elseif"
       })
     })();
