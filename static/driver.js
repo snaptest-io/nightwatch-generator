@@ -175,6 +175,7 @@ module.exports.bindDriver = function(browser) {
       browser.perform(() => {
 
         var description = renderWithVars(description, getVars(browser));
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["EL_PRESENT_ASSERT"].name} ... using ${selector} (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
@@ -397,6 +398,7 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SCROLL_ELEMENT"].name} ... using ${selector} (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
@@ -436,6 +438,7 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SCROLL_WINDOW_ELEMENT"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
@@ -530,6 +533,7 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        selector = renderWithVars(selector, getVars(browser));
         var renderedValue = renderWithVars(value, getVars(browser));
         var techDescription = `${Actions["INPUT"].name} ... to ${renderedValue} ... using "${selector}" (${selectorType})`;
 
@@ -594,6 +598,7 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["STYLE_ASSERT"].name} ... is "${style}: "${value}" ...  using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
@@ -648,6 +653,7 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        selector = renderWithVars(selector, getVars(browser));
         var renderedValue = renderWithVars(value, getVars(browser));
         if (regex) renderedValue = new RegExp(renderedValue, "g");
         var techDescription = `${Actions["VALUE_ASSERT"].name} ... is "${renderedValue}" ... using "${selector}" (${selectorType})`;
@@ -713,6 +719,7 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["EL_NOT_PRESENT_ASSERT"].name} ... using "${selector}" (${selectorType})`;
         browser.waitForElementNotPresent(selector, timeout || TIMEOUT);
         if (cb) cb(true);
@@ -727,6 +734,7 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["FOCUS"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
@@ -766,6 +774,7 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SUBMIT"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
@@ -803,6 +812,7 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["BLUR"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
@@ -841,6 +851,7 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        selector = renderWithVars(selector, getVars(browser));
         var assertText = renderWithVars(value, getVars(browser));
         if (regex) assertText = new RegExp(assertText, "g");
         var techDescription = `${Actions["TEXT_ASSERT"].name} ... is "${assertText}" ... using "${selector}" (${selectorType})`;
@@ -895,13 +906,50 @@ module.exports.bindDriver = function(browser) {
             var success = eval(value)
             return {success: success, vars: vars};
           } catch(e) {
-            return {success: false, vars: vars};
+            return {scriptError: false, vars: vars};
           }
         }`), [renderedValue, variables], function(result) {
 
           // find any new or updated variables...
           browser.vars.updateAll(result.value.vars);
 
+          if (result.value.scriptError) {
+            onActionSuccess({description, techDescription: techDescription + "; Script Error: " + result.value.scriptError });
+          } else {
+            onActionSuccess({description, techDescription: `${techDescription}; Returned ${result.value.success}`});
+            if (cb) cb(result.value.success);
+          }
+
+        });
+
+      });
+
+      return browser;
+    },
+
+    "setDialogs": (args) => {
+
+      var { alert, confirm, prompt, promptResponse, description, cb, optional = false, timeout } = args;
+
+      browser.perform(() => {
+
+        var renderedPrompt = renderWithVars(promptResponse, browser.vars.getAll());
+        var techDescription = `${Actions["DIALOG"].name} ... `;
+
+        // check for a successful browser execute.
+        browser.execute(prepStringFuncForExecute(`function(alert, confirm, prompt, promptResponse) {
+          try {
+            
+            if (alert) window.alert = function() {};
+            window.confirm = function() { return confirm }
+            window.prompt = function() { return promptResponse }
+           
+          } catch(e) {
+            return {success: false, vars: vars};
+          }
+        }`), [alert, confirm, prompt, renderedPrompt], function(result) {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
           onActionSuccess({description, techDescription });
           if (cb) cb(true);
 
@@ -909,6 +957,7 @@ module.exports.bindDriver = function(browser) {
       });
 
       return browser;
+
     },
 
     "_getElText": (selector, selectorType = "CSS", onSuccess = noop) => {

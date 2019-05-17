@@ -15,15 +15,28 @@ module.exports.generateFlat = function(testData, fileStructure, testsPath) {
     if (node.type === "test") {
 
       var test = _.find(testData.tests, {id: node.testId});
-      var testName = generateSuiteName(node, testData.tests);
-      var testPath = generateNodePath(node, testName + ".js");
+      if (!test) return;  // if test doesn't exist, get out.
+
+      /* *********************************************
+        Derive Suite Name (potential duplicates);
+      ********************************************* */
+
+      var suiteName = sanitizeForFilename(test.name).replace(/\W|_/g, "");
+      var testsWithName = testData.tests.filter((t) => test.name === t.name);
+
+      if (testsWithName.length > 1) {
+        var idxOfThisTest =_.findIndex(testsWithName, {id: test.id});
+        suiteName = `${sanitizeForFilename(test.name).replace(/\W|_/g, "")}-${idxOfThisTest + 1}`;
+      }
+
+      var testPath = generateNodePath(node, suiteName + ".js");
       var relPathToRoot = testPath.reduce((last) => last + "../", "./");
 
       fileStructure.push({
         path: testsPath.concat(testPath),
         content: generateSuite({
           testData: testData,
-          suiteName: testName,
+          suiteName,
           tests: [test],
           relPathToRoot: relPathToRoot
         })

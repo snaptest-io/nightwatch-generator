@@ -57,6 +57,13 @@ function generateLine(line, blocks, indent, meta) {
       }
 
       strings = strings.concat(postActionStrings);
+
+      if (action.commented) {
+        strings = strings.map((string) => {
+          return [string[0], "// " + string[1]];
+        });
+      }
+
     }
 
   }
@@ -181,6 +188,15 @@ var actions = {
     render: (action, selector, value, line, blocks, indent, meta) =>
       `.forward(${buildActionParams(action, {})})`
   },
+  "DIALOG": {
+    render: (action, selector, value, line, blocks, indent, meta) =>
+      `.setDialogs(${buildActionParams(action, {
+        alert: action.alert,
+        confirm: action.confirm,
+        prompt: action.prompt,
+        promptResponse: action.promptResponse
+      })})`
+  },
   "IF": {
     render: (action, selector, value, line, blocks, indent, meta) => {
 
@@ -232,11 +248,18 @@ var actions = {
   },
   "COMPONENT": {
     render: (action, selector, value, line, blocks, indent, meta) => {
+
       var component = _.find(meta.components, {id: action.componentId});
+
+      var compName = component.name;
+      var compsWithName = meta.components.filter((comp) => comp.name === component.name);
+
+      if (compsWithName.length > 1)
+        compName = compName + "-" + _.findIndex(meta.components, {id: component.id});
 
       if (!component) return [];
       return `
-       .component("${component.name}", ${buildComponentActionParams(action, component)})
+       .component("${compName}", ${buildComponentActionParams(action, component)})
       `;
     }
   },
@@ -258,12 +281,7 @@ var actions = {
   //   render: (action, selector, value, line, blocks, indent, meta) => `
   //     DoubleClick(${genSelector(action)}, ${buildValueString(action.selector)}, ${buildValueString(action.selectorType)}, ${buildDescription(description)}${buildEnding(line, blocks)};
   //   `
-  // },
-  // "DIALOG": {
-  //   render: (action, selector, value, line, blocks, indent, meta) => `
-  //     SetDialogResponses(${buildBooleanString(action.alert)}, ${action.confirm ? `"accept"` : `"reject"`}, ${action.prompt ? `"${action.promptResponse}"` : "null"}, ${buildDescription(description)}${buildEnding(line, blocks)};
-  //   `
-  // },
+  // }
 };
 
 function prepForArgString(string) {
