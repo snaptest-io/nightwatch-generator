@@ -10,6 +10,7 @@ function generate() {
   var fileStructure = [
     { path: ["suites"] },
     { path: ["common", "driver.js"], content: fs.readFileSync(`${__dirname}/static/driver.js`, 'utf8') },
+    { path: ["common", "actiondata.js"], content: fs.readFileSync(`${__dirname}/static/actiondata.js`, 'utf8') },
     { path: ["common", "variables.js"], content: fs.readFileSync(`${__dirname}/static/variables.js`, 'utf8') },
     { path: ["common", "hooks.js"], content: fs.readFileSync(`${__dirname}/static/hooks.js`, 'utf8') }
   ];

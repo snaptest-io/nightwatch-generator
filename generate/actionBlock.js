@@ -87,7 +87,13 @@ function generateLine(line, blocks, indent, meta) {
 var actions = {
   "FULL_PAGELOAD": {
     render: (action, selector, value, line, blocks, indent, meta) =>
-      `.loadPage(${buildActionParams(action, { url: value, width: `${action.width}`, height: `${action.width}`})})`
+      `.loadPage(${buildActionParams(action, { 
+        url: value, 
+        width: `${action.width}`, 
+        height: `${action.width}`, 
+        ...action.complete && { complete: true },
+        ...action.resize && { resize: true }
+      })})`
   },
   "PAUSE": {
     render: (action, selector, value, line ) =>

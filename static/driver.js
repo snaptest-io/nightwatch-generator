@@ -1,3 +1,4 @@
+const Actions = require('./actiondata').ActionsByConstant;
 const TIMEOUT = 1000;
 
 module.exports.bindDriver = function(browser) {
@@ -68,6 +69,28 @@ module.exports.bindDriver = function(browser) {
     return (browser.compVarStack.length > 0 ? browser.compVarStack[browser.compVarStack.length -1] : browser.vars).getAll();
   }
 
+  function onCriticalDriverError(error) {
+    console.error("CRITICAL DRIVER ERROR: " + error);
+  }
+
+  function onActionSuccess(args) {
+    const { description, techDescription } = args;
+    var message = description ? `${description} ( ${techDescription} )` : techDescription;
+    browser.assert.ok(true, message);
+  }
+
+  function onActionFailed(args) {
+    const { description, techDescription, reason } = args;
+    var message = description ? `${reason} - ${description} ( ${techDescription} )` : `${reason} ( ${techDescription} )`;
+    browser.assert.ok(false, message);
+  }
+
+  function onOptionalFailed(args) {
+    const { description, techDescription, reason } = args;
+    var message = description ? `${reason} - ${description} ( ${techDescription} )` : `${reason} ( ${techDescription} )`;
+    browser.assert.ok(true, message);
+  }
+
   browser.using = (testVars) => {
     browser.vars = testVars;
     return browser;
@@ -84,18 +107,33 @@ module.exports.bindDriver = function(browser) {
   browser.snapActions = {
     "loadPage": (args) => {
 
-      var { url, width, height, description, cb, optional = false, timeout } = args;
-
-      browser.perform(() => comment(renderWithVars(description, getVars(browser))));
+      var { url, width, height, description, cb, resize, complete, optional = false, timeout } = args;
 
       browser.perform(() => {
 
+        // console.log(Actions["FULL_PAGELOAD"].name);
+
         var renderedUrl = renderWithVars(url, getVars(browser));
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["FULL_PAGELOAD"].name} ${renderedUrl}`;
 
         oldUrl(renderedUrl);
-        browser.resizeWindow(width, height);
 
-        if (cb) cb(true);
+        if (resize) browser.resizeWindow(width, height);
+        if (complete) {
+          browser._pollUntilDOMComplete(renderedUrl, timeout, (success) => {
+            if (!success) {
+              if (cb) return cb(false);
+              if (optional) return onOptionalFailed({description, techDescription, reason: "Page never completely loaded."});
+              onActionFailed({description, techDescription, reason: "Page never completely loaded."});
+            } else {
+              onActionSuccess({description, techDescription });
+            }
+          })
+        } else {
+          onActionSuccess({description, techDescription });
+          if (cb) cb(true);
+        }
 
       });
 
@@ -104,13 +142,21 @@ module.exports.bindDriver = function(browser) {
 
     "back": (args) => {
 
-      const { description, cb, optional = false, timeout } = args;
+      const { description, cb } = args;
 
-      browser.perform(() => comment(description));
+      // browser.perform(() => comment(description));
       browser.perform(() => {
+
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["BACK"].name}`;
+
         browser.pause(5);
         oldBack();
+
+        onActionSuccess({description, techDescription });
+
         if (cb) cb(true);
+
       });
 
       return browser;
@@ -123,13 +169,15 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
-        var techDescription = stringFormat("(Element exists' at '%s' using '%s')", selector, selectorType);
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["EL_PRESENT_ASSERT"].name} ... using ${selector} (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          browser.assert.ok(false, stringFormat("'%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription });
+          onActionFailed({description, techDescription, reason: "Couldn't find element." });
         }, () => {
-          browser.assert.ok(true, stringFormat("'%s' - %s", description, techDescription));
+          onActionSuccess({description, techDescription });
           if (cb) cb(true);
         });
 
@@ -143,10 +191,15 @@ module.exports.bindDriver = function(browser) {
 
       var { description, cb, optional = false, timeout } = args;
 
-      browser.perform(() => comment(description));
       browser.perform(() => {
+
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["REFRESH"].name}`;
+
         oldRefresh();
+        onActionSuccess({ description, techDescription });
         if (cb) cb(true);
+
       });
 
       return browser;
@@ -156,10 +209,13 @@ module.exports.bindDriver = function(browser) {
 
       var { description, cb, optional = false, timeout } = args;
 
-      browser.perform(() => comment(description));
-
       browser.perform(() => {
+
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["FORWARD"].name}`;
+
         oldForward();
+        onActionSuccess({ description, techDescription });
         if (cb) cb(true);
       });
 
@@ -171,22 +227,35 @@ module.exports.bindDriver = function(browser) {
 
       var { localstorage, sessionstorage, description, cb, optional = false, timeout } = args;
 
-      browser.perform(() => comment(description));
       browser.perform(() => {
+
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["CLEAR_CACHES"].name}`;
 
         browser.deleteCookies();
 
         browser.execute(prepStringFuncForExecute(`function(localstorage, sessionstorage) {
-          if (localstorage && window.localStorage) {
-            window.localStorage.clear();
+          try {
+          
+            if (localstorage && window.localStorage) {
+              window.localStorage.clear();
+            }
+          
+            if (sessionstorage && window.sessionStorage) {
+              window.sessionStorage.clear();
+            }
+            
+          } catch(e) {
+            return { criticalError: e.toString() }
           }
-        
-          if (sessionstorage && window.sessionStorage) {
-            window.sessionStorage.clear();
-          }
-        }`), [localstorage, sessionstorage], () => {
-          browser.assert.ok(true, description);
+          
+        }`), [localstorage, sessionstorage], (result) => {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+
+          onActionSuccess({ description, techDescription });
           if (cb) cb(true);
+
         });
 
       });
@@ -203,7 +272,9 @@ module.exports.bindDriver = function(browser) {
 
         var pathname = renderWithVars(value, getVars(browser));
         if (regex) pathname = new RegExp(pathname, "g");
-        var techDescription = stringFormat(" (Path matches '%s')", pathname);
+        var techDescription = `${Actions["PATH_ASSERT"].name}... "${pathname}"`;
+        var description = renderWithVars(description, getVars(browser));
+
         var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
         var currentAttempt = 0;
 
@@ -215,12 +286,12 @@ module.exports.bindDriver = function(browser) {
           };
         }`), [], function(result) {
             if (result.value.readyState === "complete" && (pathname instanceof RegExp ? pathname.test(result.value.pathname) : result.value.pathname === pathname)) {
-              browser.assert.ok(true, description + techDescription)
+              onActionSuccess({ description, techDescription });
               if (cb) cb(true);
             } else if(currentAttempt === attempts) {
               if (cb) return cb(false);
-              if (optional) return browser.assert.ok(true, "OPTIONAL FAILED: " + description + techDescription);
-              browser.assert.ok(false, description + techDescription)
+              if (optional) return onOptionalFailed({ description, techDescription, reason: "Path doesn't match." });
+              onActionFailed({ description, techDescription, reason: "Path doesn't match." });
             } else {
               currentAttempt++;
               browser.pause(POLLING_RATE);
@@ -231,12 +302,13 @@ module.exports.bindDriver = function(browser) {
 
         checkForPageLoadWithPathname(pathname);
 
-        browser.execute(prepStringFuncForExecute(`function() {
-          window.alert = function() {};
-          window.confirm = function() {
-            return true;
-          };
-        }`), []);
+        // browser.execute(prepStringFuncForExecute(`function() {
+        //   window.alert = function() {};
+        //   window.confirm = function() {
+        //     return true;
+        //   };
+        // }`), []);
+
       });
 
       return browser;
@@ -247,14 +319,18 @@ module.exports.bindDriver = function(browser) {
 
       var { value, description, cb, optional = false, timeout } = args;
 
-      browser.perform(() => comment(description));
       browser.perform(() => {
-
         var script = renderWithVars(value, getVars(browser));
+        var techDescription = `${Actions["EXECUTE_SCRIPT"].name}`;
 
-        browser.execute(script, [], function(result) {
-          if (result) {
-            browser.assert.ok(result, description)
+        browser.execute(`${script}`, [], (result) => {
+
+          if (typeof result.value === "boolean" && !result.value) {
+            if (cb) return cb(false);
+            if (optional) return onOptionalFailed({description, techDescription, reason: "Script returned false." });
+            onActionFailed({description, techDescription, reason: "Script returned false." });
+          } else {
+            onActionSuccess({ description, techDescription });
           }
 
           if (cb) cb(true);
@@ -269,11 +345,13 @@ module.exports.bindDriver = function(browser) {
 
       var { windowIndex, description, cb, optional = false, timeout } = args;
 
-      browser.perform(() => comment(description));
-
       browser.perform(() => {
+
+        var techDescription = `${Actions["CHANGE_WINDOW"].name}`;
+
         browser.windowHandles(function(result) {
           browser.switchWindow(result.value[windowIndex]);
+          onActionSuccess({ description, techDescription });
           if (cb) cb(true);
         });
       });
@@ -285,13 +363,23 @@ module.exports.bindDriver = function(browser) {
 
       var { x, y, description, cb, optional = false, timeout } = args;
 
-      browser.perform(() => comment(description));
-
       browser.perform(() => {
+
+        var techDescription = `${Actions["SCROLL_WINDOW"].name} to X:${x} & Y:${y} `;
+
         browser.execute(prepStringFuncForExecute(`function(x, y) {
-          window.scrollTo(x, y);
+          try {
+            window.scrollTo(x, y);
+          } catch(e) {
+            return { criticalError: e.toString() } 
+          }
         }`), [x, y], function(result) {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+
+          onActionSuccess({ description, techDescription });
           if (cb) cb(true);
+
         });
       });
 
@@ -303,22 +391,33 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", x, y, description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
-        var techDescription = stringFormat("(Scrolling element at '%s' using '%s')", selector, selectorType);
+
+        var techDescription = `${Actions["SCROLL_ELEMENT"].name} ... using ${selector} (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
+          onActionFailed({description, techDescription, reason: "" });
         });
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, x, y) {
     
           ${snptGetElement}
-    
-          (function(el, x, y) {
+          
+          try {
+            var el = snptGetElement(selector, selectorType);
+            if (!el) return;
             el.scrollLeft = x;
             el.scrollTop = y;
-          })(snptGetElement(selector, selectorType), x, y);
+          } catch (e) {
+            return { criticalError: e.toString() }
+          }
+    
         }`), [selector, selectorType, x, y], (result) => {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+
+          onActionSuccess({description, techDescription });
           if (cb) cb(true);
         });
       });
@@ -331,24 +430,33 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
-        var techDescription = stringFormat("(Scrolling window to el '%s' using '%s')", selector, selectorType);
+
+        var techDescription = `${Actions["SCROLL_WINDOW_ELEMENT"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
+          onActionFailed({description, techDescription, reason: "" });
         });
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value) {
     
           ${snptGetElement}
     
-          (function(el) {
-            if (el) {
-              var elsScrollY = el.getBoundingClientRect().top + window.scrollY - el.offsetHeight;
-              window.scrollTo(0, elsScrollY);
-            }
-          })(snptGetElement(selector, selectorType), value);
+          try {
+            var el = snptGetElement(selector, selectorType);
+            if (!el) return;
+            var elsScrollY = el.getBoundingClientRect().top + window.scrollY - el.offsetHeight;
+            window.scrollTo(0, elsScrollY);
+          } catch(e) {
+            return { criticalError: e.toString() }
+          }
+          
         }`), [selector, selectorType], (result) => {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+
+          onActionSuccess({description, techDescription });
           if (cb) cb(true);
         });
       });
@@ -362,19 +470,24 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
-        var techDescription = stringFormat("(Click '%s' using '%s')", selector, selectorType);
+        var techDescription = `${Actions["MOUSEDOWN"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element to click. %s", description, techDescription));
+          if (optional) onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
+          else onActionFailed({description, techDescription, reason: "" });
         });
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
   
           ${snptGetElement}
     
-          (function(element) {
-    
+          try {
+          
+            var element = snptGetElement(selector, selectorType);
+            
+            if (!element) return;
+            
             function triggerMouseEvent(node, eventType) {
               var clickEvent = document.createEvent('MouseEvents');
               clickEvent.initEvent(eventType, true, true);
@@ -385,13 +498,16 @@ module.exports.bindDriver = function(browser) {
             triggerMouseEvent(element, "mousedown");
             triggerMouseEvent(element, "mouseup");
             triggerMouseEvent(element, "click");
-    
-          })(snptGetElement(selector, selectorType));
+
+          } catch(e) {
+            return { criticalError: e.toString() }
+          }
     
         }`), [selector, selectorType], function(result) {
-          if (result.state === "success") {
-            browser.assert.ok(description + "; " + techDescription);
-          }
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+
+          onActionSuccess({description, techDescription });
 
           if (cb) cb(true);
 
@@ -410,41 +526,49 @@ module.exports.bindDriver = function(browser) {
       browser.perform(() => {
 
         var renderedValue = renderWithVars(value, getVars(browser));
-        var techDescription = stringFormat("(Change input '%s' using '%s')", selector, selectorType);
+        var techDescription = `${Actions["INPUT"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
+          onActionFailed({description, techDescription, reason: "" });
         });
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value) {
     
           ${snptGetElement}
     
-          (function(el) {
+          try {
+          
+            var el = snptGetElement(selector, selectorType);
+            if (!el) return;
+           
             function triggerKeyEvent(node, eventType) {
               var keydownEvent = document.createEvent( 'KeyboardEvent' );
               keydownEvent.initEvent( eventType, true, false, null, 0, false, 0, false, 66, 0 );
               node.dispatchEvent( keydownEvent );
             }
     
-            if (el) {
-              triggerKeyEvent(el, "keydown");
-              el.focus();
-              var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-              nativeInputValueSetter.call(el, value);
-              el.dispatchEvent(new Event('change', {bubbles: true}));
-              el.dispatchEvent(new Event('input', {bubbles: true}));
-              triggerKeyEvent(el, "keyup");
-              triggerKeyEvent(el, "keypress");
-            }
-          })(snptGetElement(selector, selectorType), value);
+            triggerKeyEvent(el, "keydown");
+            el.focus();
+            var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+            nativeInputValueSetter.call(el, value);
+            el.dispatchEvent(new Event('change', {bubbles: true}));
+            el.dispatchEvent(new Event('input', {bubbles: true}));
+            triggerKeyEvent(el, "keyup");
+            triggerKeyEvent(el, "keypress");
+            
+          } catch(e) {
+            return { criticalError: e.toString() }
+          }
     
         }`), [selector, selectorType, renderedValue], function(result) {
-          if (result.state === "success") {
-            browser.assert.ok(description + "; " + techDescription);
-          }
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+
+          onActionSuccess({description, techDescription });
           if (cb) cb(true);
+
         });
 
       });
@@ -459,11 +583,12 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
-        var techDescription = stringFormat("(Style is '%s' at '%s' using '%s')", value, selector, selectorType);
+        var techDescription = `${Actions["STYLE_ASSERT"].name} ... is "${style}: "${value}" ...  using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
+          onActionFailed({description, techDescription, reason: "" });
         });
 
         var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
@@ -471,19 +596,27 @@ module.exports.bindDriver = function(browser) {
 
         function checkforStyle(selector, selectorType, style, value) {
           browser.execute(prepStringFuncForExecute(`function(selector, selectorType, style) {
-          ${snptGetElement}
-          var el = snptGetElement(selector, selectorType);
-          return window.getComputedStyle(el, null).getPropertyValue(style);
-        }`), [selector, selectorType, style], function(result) {
+            ${snptGetElement}
+            try {
+              var el = snptGetElement(selector, selectorType);
+              if (!el) return;
+              return window.getComputedStyle(el, null).getPropertyValue(style);
+            } catch(e) {
+              return { criticalError: e.toString() }
+            }
+          }`), [selector, selectorType, style], function(result) {
+
+            if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+
             if (value instanceof RegExp ? value.test(result.value) : value === result.value) {
-              browser.assert.ok(true, description + techDescription)
+              onActionSuccess({description, techDescription });
               if (cb) cb(true);
             } else if (currentAttempt === attempts) {
               if (cb) return cb(false);
-              browser.assert.ok(false, description + techDescription)
+              if (optional) return onOptionalFailed({description, techDescription, reason: "Style didn't match." });
+              onActionFailed({description, techDescription, reason: "Style didn't match." });
             } else {
               currentAttempt++;
-              console.log("Attempt %s: Actual %s, Expected %s", currentAttempt, result.value, value)
               browser.pause(POLLING_RATE);
               checkforStyle(selector, selectorType, style, value);
             }
@@ -506,12 +639,12 @@ module.exports.bindDriver = function(browser) {
 
         var renderedValue = renderWithVars(value, getVars(browser));
         if (regex) renderedValue = new RegExp(renderedValue, "g");
-        var techDescription = stringFormat("(Assert value '%s' at '%s' using '%s')", renderedValue, selector, selectorType);
+        var techDescription = `${Actions["VALUE_ASSERT"].name} ... is "${renderedValue}" ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          if (optional) return browser.assert.ok(true, stringFormat("OPTIONAL FAILED: '%s' - Couldn't find element. %s", description, techDescription));
-          browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
+          onActionFailed({description, techDescription, reason: "" });
         });
 
         var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
@@ -520,25 +653,34 @@ module.exports.bindDriver = function(browser) {
         function checkforValue(selector, selectorType, value) {
           browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
   
-          ${snptGetElement}
-  
-          var el = snptGetElement(selector, selectorType);
-  
-          if (el) {
-            if (el.type === 'checkbox' || el.type === 'radio') {
-              return el.checked ? "true" : "false";
-            } else {
-              return el.value;
+            ${snptGetElement}
+            
+            try {
+            
+              var el = snptGetElement(selector, selectorType);
+              if (!el) return;        
+          
+              if (el.type === 'checkbox' || el.type === 'radio') {
+                return el.checked ? "true" : "false";
+              } else {
+                return el.value;
+              }
+            
+            } catch (e) {
+              return { criticalError: e.toString() }
             }
-          } else return null;
-        }`), [selector, selectorType], function(result) {
+          }
+          `), [selector, selectorType], function(result) {
+
+            if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+
             if (value instanceof RegExp ? value.test(result.value) : value === result.value) {
-              browser.assert.ok(true, description)
+              onActionSuccess({description, techDescription });
               if (cb) cb(true);
             } else if(currentAttempt === attempts) {
               if (cb) return cb(false);
-              if (optional) return browser.assert.ok(true, stringFormat("OPTIONAL FAILED: '%s' - Couldn't find element. %s", description, techDescription));
-              browser.assert.ok(false, description)
+              if (optional) return onOptionalFailed({description, techDescription, reason: "" });
+              onActionFailed({description, techDescription, reason: "" });
             } else {
               currentAttempt++;
               browser.pause(POLLING_RATE);
@@ -556,14 +698,11 @@ module.exports.bindDriver = function(browser) {
     },
 
     "elementNotPresent": (args) => {
-
       // TODO: refactor to use selector strategies
-
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
-      browser.perform(() => comment(description));
-
       browser.perform(() => {
+        var techDescription = `${Actions["EL_NOT_PRESENT_ASSERT"].name} ... using "${selector}" (${selectorType})`;
         browser.waitForElementNotPresent(selector, timeout || TIMEOUT);
         if (cb) cb(true);
       });
@@ -577,26 +716,32 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
-        var techDescription = stringFormat("(Focus on element with '%s' using '%s')", selector, selectorType);
+        var techDescription = `${Actions["FOCUS"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
+          onActionFailed({description, techDescription, reason: "" });
         });
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
     
           ${snptGetElement}
-    
-          (function(el) {
+          
+          try {
+          
+            var el = snptGetElement(selector, selectorType);
+            if (!el) return;
+         
             var event = new FocusEvent('focus');
             el.dispatchEvent(event);
-          })(snptGetElement(selector, selectorType));
-        }`), [selector, selectorType], function(result) {
-          if (result.state === "success") {
-            browser.assert.ok(description + "; " + techDescription);
+          } catch(e) {
+            return { criticalError: e.toString() }
           }
-
+          
+        }`), [selector, selectorType], function(result) {
+          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          onActionSuccess({description, techDescription });
           if (cb) cb(true);
         });
       });
@@ -609,26 +754,31 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
-        var techDescription = stringFormat("(Form Submit at '%s' using '%s')", selector, selectorType);
+
+        var techDescription = `${Actions["SUBMIT"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
+          onActionFailed({description, techDescription, reason: "" });
         });
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
   
           ${snptGetElement}
-    
-          (function(el) {
+          
+          try {
+            var el = snptGetElement(selector, selectorType);
+            if (!el) return;
             var event = new Event('submit');
             el.dispatchEvent(event);
-          })(snptGetElement(selector, selectorType));
+          } catch(e) {
+            return { criticalError: e.toString() }
+          }
     
         }`), [selector, selectorType], function(result) {
-          if (result.state === "success") {
-            browser.assert.ok(description + "; " + techDescription);
-          }
+          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          onActionSuccess({description, techDescription });
           if (cb) cb(true);
         });
       });
@@ -641,26 +791,32 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout } = args;
 
       browser.perform(() => {
-        var techDescription = stringFormat("(blur '%s' using '%s')", selector, selectorType);
+
+        var techDescription = `${Actions["BLUR"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          browser.assert.ok(false, stringFormat("FAILED: '%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
+          onActionFailed({description, techDescription, reason: "" });
         });
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
     
           ${snptGetElement}
-    
-          (function(el) {
+
+          try {          
+            var el = snptGetElement(selector, selectorType);
+            if (!el) return;
             var event = new FocusEvent('blur');
             el.dispatchEvent(event);
-          })(snptGetElement(selector, selectorType));
+          } catch (e) {
+            return { criticalError: e.toString() }
+          }
+          
     
         }`), [selector, selectorType], function(result) {
-          if (result.state === "success") {
-            browser.assert.ok(description + "; " + techDescription);
-          }
+          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          onActionSuccess({description, techDescription });
           if (cb) cb(true);
         });
       });
@@ -676,12 +832,12 @@ module.exports.bindDriver = function(browser) {
 
         var assertText = renderWithVars(value, getVars(browser));
         if (regex) assertText = new RegExp(assertText, "g");
-        var techDescription = stringFormat("(Assert text matches '%s' at '%s' using '%s')", assertText.toString(), selector, selectorType);
+        var techDescription = `${Actions["TEXT_ASSERT"].name} ... is "${assertText}" ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
-          if (optional) return browser.assert.ok(true, stringFormat("OPTIONAL FAILED: '%s' - Couldn't find element. %s", description, techDescription));
-          browser.assert.ok(false, stringFormat("Optional Fail: '%s' - Couldn't find element. %s", description, techDescription));
+          if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element" });
+          onActionFailed({description, techDescription, reason: "Couldn't find element" });
         });
 
         var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
@@ -690,12 +846,12 @@ module.exports.bindDriver = function(browser) {
         function checkforText(selector, selectorType, assertText) {
           browser._getElText(selector, selectorType,  function(elsText) {
             if (assertText instanceof RegExp ? assertText.test(elsText) : assertText === elsText) {
-              browser.assert.ok(true, description)
+              onActionSuccess({description, techDescription });
               if (cb) cb(true);
             } else if(currentAttempt === attempts) {
               if (cb) return cb(false);
-              if (optional) return browser.assert.ok(true, stringFormat("OPTIONAL FAILED: '%s' - Couldn't find element. %s", description, techDescription));
-              browser.assert.ok(false, stringFormat("Optional Fail: '%s' - Couldn't find element. %s", description, techDescription));
+              if (optional) return onOptionalFailed({description, techDescription, reason: `Text was not correct. got: "${elsText}"` });
+              onActionFailed({description, techDescription, reason: `Text was not correct. got: "${elsText}"` });
             } else {
               currentAttempt++;
               browser.pause(POLLING_RATE);
@@ -715,12 +871,11 @@ module.exports.bindDriver = function(browser) {
 
       var { value, description, cb, optional = false, timeout } = args;
 
-      browser.perform(() => comment(description));
-
       browser.perform(() => {
 
         var variables = browser.vars.getAllObject();
         var renderedValue = renderWithVars(value, browser.vars.getAll());
+        var techDescription = `${Actions["EVAL"].name} ... "${renderedValue}"`;
 
         // check for a successful browser execute.
         browser.execute(prepStringFuncForExecute(`function(value, variables) {
@@ -735,8 +890,8 @@ module.exports.bindDriver = function(browser) {
 
           // find any new or updated variables...
           browser.vars.updateAll(result.value.vars);
-          browser.assert.ok(result.value.success, description);
 
+          onActionSuccess({description, techDescription });
           if (cb) cb(true);
 
         });
@@ -749,19 +904,28 @@ module.exports.bindDriver = function(browser) {
 
       browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
   
-      ${snptGetElement}
-  
-      return (function(element) {
-        if (!element) return null;
-        var text = "";
-        for (var i = 0; i < element.childNodes.length; ++i)
-          if (element.childNodes[i].nodeType === 3)
-            if (element.childNodes[i].textContent)
-              text += element.childNodes[i].textContent;
-        text = text.replace(/(\\r\\n|\\n|\\r)/gm, "");
-        return text.trim();
-      })(snptGetElement(selector, selectorType));
-    }`), [selector, selectorType], function(result) {
+        ${snptGetElement}
+    
+        try {
+    
+          var element = snptGetElement(selector, selectorType)
+      
+          if (!element) return null;
+          var text = "";
+          for (var i = 0; i < element.childNodes.length; ++i)
+            if (element.childNodes[i].nodeType === 3)
+              if (element.childNodes[i].textContent)
+                text += element.childNodes[i].textContent;
+          text = text.replace(/(\\r\\n|\\n|\\r)/gm, "");
+          return text.trim();
+          
+        } catch(e) {
+          return { criticalError: e.toString() }
+        }
+        
+        
+      }`), [selector, selectorType], function(result) {
+        if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
         onSuccess(result.value);
       });
 
@@ -777,8 +941,14 @@ module.exports.bindDriver = function(browser) {
         browser.execute(
           prepStringFuncForExecute(`function(selector, selectorType) {
             ${snptGetElement}
-            return !!snptGetElement(selector, selectorType);
+            try {
+              return !!snptGetElement(selector, selectorType);
+            } catch (e) {
+              return { criticalError: e.toString() }
+            }
           }`), [selector, selectorType], function(result) {
+
+            if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
 
             if (!result.value && currentAttempt < attempts) {
               currentAttempt++;
@@ -797,6 +967,35 @@ module.exports.bindDriver = function(browser) {
 
       return browser;
 
+    },
+
+    "_pollUntilDOMComplete": (url, timeout, cb) => {
+
+      var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
+      var currentAttempt = 0;
+
+      function checkForDomComplete(url) {
+        browser.execute(
+          prepStringFuncForExecute(`function(url) {
+            return document.readyState === "complete" && window.location.href === url;
+          }`), [url], function(result) {
+
+            if (!result.value && currentAttempt < attempts) {
+              currentAttempt++;
+              browser.pause(POLLING_RATE);
+              checkForDomComplete(url);
+            } else if (!result.value) {
+              cb(false);
+            } else {
+              cb(true);
+            }
+
+          });
+      }
+
+      checkForDomComplete(url);
+
+      return browser;
     }
 
   };
