@@ -69,8 +69,13 @@ module.exports.bindDriver = function(browser) {
     return (browser.compVarStack.length > 0 ? browser.compVarStack[browser.compVarStack.length -1] : browser.vars).getAll();
   }
 
-  function onCriticalDriverError(error) {
+  function onCriticalDriverError(args) {
+
+    const { error, techDescription } = args;
+
     console.error("CRITICAL DRIVER ERROR: " + error);
+    console.error("WHEN RUNNING: " + techDescription);
+
   }
 
   function onActionSuccess(args) {
@@ -251,7 +256,7 @@ module.exports.bindDriver = function(browser) {
           
         }`), [localstorage, sessionstorage], (result) => {
 
-          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
           onActionSuccess({ description, techDescription });
           if (cb) cb(true);
@@ -375,7 +380,7 @@ module.exports.bindDriver = function(browser) {
           }
         }`), [x, y], function(result) {
 
-          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
           onActionSuccess({ description, techDescription });
           if (cb) cb(true);
@@ -415,7 +420,7 @@ module.exports.bindDriver = function(browser) {
     
         }`), [selector, selectorType, x, y], (result) => {
 
-          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
           onActionSuccess({description, techDescription });
           if (cb) cb(true);
@@ -454,7 +459,7 @@ module.exports.bindDriver = function(browser) {
           
         }`), [selector, selectorType], (result) => {
 
-          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
           onActionSuccess({description, techDescription });
           if (cb) cb(true);
@@ -505,7 +510,7 @@ module.exports.bindDriver = function(browser) {
     
         }`), [selector, selectorType], function(result) {
 
-          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
           onActionSuccess({description, techDescription });
 
@@ -526,7 +531,7 @@ module.exports.bindDriver = function(browser) {
       browser.perform(() => {
 
         var renderedValue = renderWithVars(value, getVars(browser));
-        var techDescription = `${Actions["INPUT"].name} ... using "${selector}" (${selectorType})`;
+        var techDescription = `${Actions["INPUT"].name} ... to ${renderedValue} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout, () => {
           if (cb) return cb(false);
@@ -551,8 +556,14 @@ module.exports.bindDriver = function(browser) {
     
             triggerKeyEvent(el, "keydown");
             el.focus();
-            var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-            nativeInputValueSetter.call(el, value);
+            
+            if (el.nodeName === "SELECT") {
+              el.value = value;
+            } else {
+              var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+              nativeInputValueSetter.call(el, value);
+            }
+             
             el.dispatchEvent(new Event('change', {bubbles: true}));
             el.dispatchEvent(new Event('input', {bubbles: true}));
             triggerKeyEvent(el, "keyup");
@@ -564,7 +575,7 @@ module.exports.bindDriver = function(browser) {
     
         }`), [selector, selectorType, renderedValue], function(result) {
 
-          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
           onActionSuccess({description, techDescription });
           if (cb) cb(true);
@@ -606,7 +617,7 @@ module.exports.bindDriver = function(browser) {
             }
           }`), [selector, selectorType, style], function(result) {
 
-            if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+            if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
             if (value instanceof RegExp ? value.test(result.value) : value === result.value) {
               onActionSuccess({description, techDescription });
@@ -672,7 +683,7 @@ module.exports.bindDriver = function(browser) {
           }
           `), [selector, selectorType], function(result) {
 
-            if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+            if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
             if (value instanceof RegExp ? value.test(result.value) : value === result.value) {
               onActionSuccess({description, techDescription });
@@ -740,7 +751,7 @@ module.exports.bindDriver = function(browser) {
           }
           
         }`), [selector, selectorType], function(result) {
-          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
           onActionSuccess({description, techDescription });
           if (cb) cb(true);
         });
@@ -777,7 +788,7 @@ module.exports.bindDriver = function(browser) {
           }
     
         }`), [selector, selectorType], function(result) {
-          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
           onActionSuccess({description, techDescription });
           if (cb) cb(true);
         });
@@ -815,7 +826,7 @@ module.exports.bindDriver = function(browser) {
           
     
         }`), [selector, selectorType], function(result) {
-          if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
           onActionSuccess({description, techDescription });
           if (cb) cb(true);
         });
@@ -925,7 +936,7 @@ module.exports.bindDriver = function(browser) {
         
         
       }`), [selector, selectorType], function(result) {
-        if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+        if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
         onSuccess(result.value);
       });
 
@@ -948,7 +959,7 @@ module.exports.bindDriver = function(browser) {
             }
           }`), [selector, selectorType], function(result) {
 
-            if (result.value && result.value.criticalError) return onCriticalDriverError(result.value.criticalError);
+            if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
             if (!result.value && currentAttempt < attempts) {
               currentAttempt++;
