@@ -541,49 +541,62 @@ module.exports.bindDriver = function(browser) {
           if (cb) return cb(false);
           if (optional) return onOptionalFailed({description, techDescription, reason: "Couldn't find element." });
           onActionFailed({description, techDescription, reason: "" });
-        });
+        }, (elementInfo) => {
 
-        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value) {
+          // Text areas are not handling the javascript only trigger.
+          if (elementInfo.nodeName === "TEXTAREA") {
+            browser.clearValue(selector);
+            browser.setValue(selector, renderedValue, () => {
+              onActionSuccess({description, techDescription });
+              if (cb) cb(true);
+            });
+          } else {
+            browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value) {
     
-          ${snptGetElement}
+              ${snptGetElement}
     
-          try {
-          
-            var el = snptGetElement(selector, selectorType);
-            if (!el) return;
-           
-            function triggerKeyEvent(node, eventType) {
-              var keydownEvent = document.createEvent( 'KeyboardEvent' );
-              keydownEvent.initEvent( eventType, true, false, null, 0, false, 0, false, 66, 0 );
-              node.dispatchEvent( keydownEvent );
-            }
+              try {
     
-            triggerKeyEvent(el, "keydown");
-            el.focus();
-            
-            if (el.nodeName === "SELECT") {
-              el.value = value;
-            } else {
-              var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-              nativeInputValueSetter.call(el, value);
-            }
-             
-            el.dispatchEvent(new Event('change', {bubbles: true}));
-            el.dispatchEvent(new Event('input', {bubbles: true}));
-            triggerKeyEvent(el, "keyup");
-            triggerKeyEvent(el, "keypress");
-            
-          } catch(e) {
-            return { criticalError: e.toString() }
+                var el = snptGetElement(selector, selectorType);
+                if (!el) return;
+    
+                function triggerKeyEvent(node, eventType) {
+                  var keydownEvent = document.createEvent( 'KeyboardEvent' );
+                  keydownEvent.initEvent( eventType, true, false, null, 0, false, 0, false, 66, 0 );
+                  node.dispatchEvent( keydownEvent );
+                }
+    
+                triggerKeyEvent(el, "keydown");
+                el.focus();
+    
+                if (el.nodeName === "SELECT" || el.nodeName === "TEXTAREA") {
+                  el.value = value;
+                } else {
+                  var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                  nativeInputValueSetter.call(el, value);
+                }
+    
+                el.dispatchEvent(new Event('change', {bubbles: true}));
+                el.dispatchEvent(new Event('input', {bubbles: true}));
+                triggerKeyEvent(el, "keyup");
+                triggerKeyEvent(el, "keypress");
+    
+              } catch(e) {
+                return { criticalError: e.toString() }
+              }
+    
+            }`), [selector, selectorType, renderedValue], function (result) {
+
+              if (result.value && result.value.criticalError) return onCriticalDriverError({
+                error: result.value.criticalError,
+                techDescription
+              });
+
+              onActionSuccess({description, techDescription});
+              if (cb) cb(true);
+
+            });
           }
-    
-        }`), [selector, selectorType, renderedValue], function(result) {
-
-          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
-
-          onActionSuccess({description, techDescription });
-          if (cb) cb(true);
-
         });
 
       });
@@ -1002,6 +1015,14 @@ module.exports.bindDriver = function(browser) {
           prepStringFuncForExecute(`function(selector, selectorType) {
             ${snptGetElement}
             try {
+              var el = snptGetElement(selector, selectorType); 
+              
+              if (el) {
+                return { success: true, elementInfo: { nodeName: el.nodeName } }
+              } else {
+                return { success: false }  
+              }
+              
               return !!snptGetElement(selector, selectorType);
             } catch (e) {
               return { criticalError: e.toString() }
@@ -1010,14 +1031,14 @@ module.exports.bindDriver = function(browser) {
 
             if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
-            if (!result.value && currentAttempt < attempts) {
+            if (!result.value.success && currentAttempt < attempts) {
               currentAttempt++;
               browser.pause(POLLING_RATE);
               checkforEl(selector);
-            } else if (!result.value) {
+            } else if (!result.value.success) {
               onFail();
             } else {
-              onSuccess();
+              onSuccess(result.value.elementInfo);
             }
 
           });
