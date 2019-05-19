@@ -1,5 +1,5 @@
 const Actions = require('./actiondata').ActionsByConstant;
-const TIMEOUT = 1000;
+const TIMEOUT = 5000;
 
 module.exports.bindDriver = function(browser) {
 
@@ -286,18 +286,18 @@ module.exports.bindDriver = function(browser) {
 
         function checkForPageLoadWithPathname(pathname) {
           browser.execute(prepStringFuncForExecute(`function() {
-          return {
-            pathname: window.location.pathname,
-            readyState: document.readyState
-          };
-        }`), [], function(result) {
+            return {
+              pathname: window.location.pathname,
+              readyState: document.readyState
+            };
+          }`), [], function(result) {
             if (result.value.readyState === "complete" && (pathname instanceof RegExp ? pathname.test(result.value.pathname) : result.value.pathname === pathname)) {
               onActionSuccess({ description, techDescription });
               if (cb) cb(true);
             } else if(currentAttempt === attempts) {
               if (cb) return cb(false);
               if (optional) return onOptionalFailed({ description, techDescription, reason: "Path doesn't match." });
-              onActionFailed({ description, techDescription, reason: "Path doesn't match." });
+              onActionFailed({ description, techDescription, reason: `Path doesn't match. Actual result was "${result.value.pathname}". ` });
             } else {
               currentAttempt++;
               browser.pause(POLLING_RATE);
@@ -307,13 +307,6 @@ module.exports.bindDriver = function(browser) {
         }
 
         checkForPageLoadWithPathname(pathname);
-
-        // browser.execute(prepStringFuncForExecute(`function() {
-        //   window.alert = function() {};
-        //   window.confirm = function() {
-        //     return true;
-        //   };
-        // }`), []);
 
       });
 
