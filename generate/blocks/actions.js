@@ -198,7 +198,12 @@ const generateLineArrayFromBlock = (block, testData, indent) => {
   block.forEach((action) => {
 
     var selector = prepForArgString(action.selector || "");
-    var value = _.isString(action.value) ? prepForArgString(action.value) : action.value;
+    var value = action.value;
+
+    if (_.isString(action.value)) {
+      value = action.regex ? prepForArgRegExpString(action.value) : prepForArgString(action.value)
+    }
+
     var lines = "// NOT IMPLEMENTED";
 
     if (actions[action.type]) {
@@ -230,7 +235,16 @@ const generateLineArrayFromBlock = (block, testData, indent) => {
 module.exports.generateLineArrayFromBlock = generateLineArrayFromBlock;
 
 function prepForArgString(string) {
-  return string.replace(new RegExp("\\$", 'g'), "\\$").replace(new RegExp("`", 'g'), "\\`")
+  return string
+    .replace(new RegExp("\\${", 'g'), "\\${")
+    .replace(new RegExp("`", 'g'), "\\`")
+}
+
+function prepForArgRegExpString(string) {
+  return string
+    .replace(new RegExp("\\\\", 'g'), "\\\\")
+    .replace(new RegExp("\\${", 'g'), "\\${")
+    .replace(new RegExp("`", 'g'), "\\`")
 }
 
 function buildActionParams(action, keyValues) {
