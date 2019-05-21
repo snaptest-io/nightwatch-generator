@@ -174,7 +174,11 @@ const actions = {
     render: (action, selector, value, meta) => {
       return `.eval(${buildActionParams(action, { value })})`
     }
-  }
+  },
+  "URL_CHANGE_INDICATOR": {
+    render: (action, selector, value, meta) =>
+      `// ${value}`
+  },
   // "MOUSEOVER": {
   //   render: (action, selector, value, meta) =>
   //     `.moveToElement(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
