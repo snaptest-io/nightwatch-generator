@@ -160,6 +160,8 @@ const actions = {
 
       var component = _.find(meta.components, {id: action.componentId});
 
+      if (!component) return `// Empty component action, or component was removed.`;
+
       var compName = component.name;
       var compsWithName = meta.components.filter((comp) => comp.name === component.name);
 
