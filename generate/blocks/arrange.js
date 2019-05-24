@@ -16,7 +16,7 @@ module.exports = (actions) => {
 
       if (currentAction.indent === firstAction.indent) {
 
-        // First action should always be an IF
+        // If first action... (will always be a type: "IF") AND there is an indented block following it (most usual case)
         if (currentAction.id === firstAction.id && nextAction.indent === currentAction.indent + 1) {
 
           var then = buildBlock(currentIdx + 1);
@@ -28,6 +28,21 @@ module.exports = (actions) => {
           });
 
           currentIdx = then.lastProcessedIdx + 1;
+
+        }
+        // If first action... (will always be a type: "IF") BUT there isn't a block following it... just execute the IF action and end block.
+        else if (currentAction.id === firstAction.id && !nextAction.id) {
+
+          block.push({
+            type: "IF",
+            condition: currentAction.value,
+            then: []
+          });
+
+          return {
+            lastProcessedIdx: currentIdx,
+            block
+          }
 
         }
         else if (currentAction.type === "ELSEIF") {
