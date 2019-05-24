@@ -10,7 +10,7 @@ module.exports.bindComponents = function(browser) {
 
   browser.components["<%= component.name %>"] = {
     defaults: {<% component.variables.forEach((variable, idx) => { %>
-      "<%=variable.name%>": "<%=variable.defaultValue%>"<%= (idx < component.variables.length - 1? "," : "")%><% }); %>
+      "<%=variable.name%>": `<%-variable.defaultValue%>`<%= (idx < component.variables.length - 1? "," : "")%><% }); %>
     },
     actions: () => {
       return browser

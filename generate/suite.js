@@ -2,7 +2,7 @@ var generateActionBlock = require('./actionBlock');
 var _ = require("lodash");
 var ejs = require('ejs');
 var fs = require('fs-extra');
-
+var prepStrings = require('../utils/prepStrings');
 
 module.exports = function(data) {
 
@@ -18,7 +18,7 @@ module.exports = function(data) {
     tests: tests.map((test) => {
       return {
         generateActionBlock: (indent, indentChar) =>  generateActionBlock(test, testData, indent, indentChar),
-        variables: test.variables,
+        variables: test.variables.map((variable) => ({...variable, defaultValue: prepStrings.prepForArgString(variable.defaultValue)})),
         name: test.name,
       }
     })

@@ -15,7 +15,7 @@ module.exports = {
     require('<%= relPathToRoot %>common/components.js').bindComponents(browser);
 <% } %>
     var testVars = Variables.TestVars(browser, {<% test.variables.forEach((variable, idx) => { %>
-      "<%=variable.name%>": "<%=variable.defaultValue%>"<%= (idx < test.variables.length - 1? "," : "")%><% }); %>
+      "<%=variable.name%>": `<%-variable.defaultValue%>`<%= (idx < test.variables.length - 1? "," : "")%><% }); %>
     });
 
     browser

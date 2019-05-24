@@ -158,7 +158,7 @@ const actions = {
   "COMPONENT": {
     render: (action, selector, value, meta) => {
 
-      var component = _.find(meta.components, {id: action.componentId});
+      var component = _.find(meta.raw.tests.filter((test) => test.type === "component"), {id: action.componentId});
 
       if (!component) return `// Empty component action, or component was removed.`;
 
@@ -292,8 +292,8 @@ function buildComponentActionParams(action, component) {
   var result = [];
 
   action.variables.forEach((instanceVar) => {
-    if (nameMap[instanceVar.id]) {
-      result.push(`${nameMap[instanceVar.id]}: "${instanceVar.value}"`)
+    if (nameMap[instanceVar.id] && instanceVar.value !== "${default}") {
+      result.push(`${nameMap[instanceVar.id]}: \`${prepForArgString(instanceVar.value)}\``)
     }
   });
 
