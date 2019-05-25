@@ -2,90 +2,7 @@ module.exports = (actions) => {
 
   actions = actions.map((action) => ({...action, indent: action.indent || 0}));
 
-  function buildIfBlock(startIdx) {
-
-    var block = [];
-    var firstAction = actions[startIdx];
-    var currentIdx = startIdx;
-    var currentAction = actions[startIdx];
-
-    while (currentIdx < actions.length) {
-
-      currentAction = actions[currentIdx];
-      var nextAction = actions[currentIdx + 1] || {};
-
-      if (currentAction.indent === firstAction.indent) {
-
-        // If first action... (will always be a type: "IF") AND there is an indented block following it (most usual case)
-        if (currentAction.id === firstAction.id && nextAction.indent === currentAction.indent + 1) {
-
-          var then = buildBlock(currentIdx + 1);
-
-          block.push({
-            type: "IF",
-            condition: currentAction.value,
-            then: then.block
-          });
-
-          currentIdx = then.lastProcessedIdx + 1;
-
-        }
-        // If first action... (will always be a type: "IF") BUT there isn't a block following it... just execute the IF action and end block.
-        else if (currentAction.id === firstAction.id && !nextAction.id) {
-
-          block.push({
-            type: "IF",
-            condition: currentAction.value,
-            then: []
-          });
-
-          return {
-            lastProcessedIdx: currentIdx,
-            block
-          }
-
-        }
-        else if (currentAction.type === "ELSEIF") {
-          var then = buildBlock(currentIdx + 1);
-
-          block.push({
-            type: "ELSEIF",
-            condition: currentAction.value,
-            then: then.block
-          });
-
-          currentIdx = then.lastProcessedIdx + 1;
-        }
-        else if (currentAction.type === "ELSE") {
-          var then = buildBlock(currentIdx + 1);
-
-          block.push({
-            type: "ELSE",
-            then: then.block
-          });
-
-          currentIdx = then.lastProcessedIdx + 1;
-        }
-        else {
-          return {
-            lastProcessedIdx: currentIdx - 1,
-            block
-          }
-        }
-      } else {
-        return {
-          lastProcessedIdx: currentIdx - 1,
-          block
-        }
-      }
-    }
-
-    return {
-      lastProcessedIdx: currentIdx,
-      block
-    }
-
-  }
+  return buildBlock(0).block;
 
   function buildBlock(startIdx) {
 
@@ -132,6 +49,126 @@ module.exports = (actions) => {
 
   }
 
-  return buildBlock(0).block;
+  function buildIfBlock(startIdx) {
+
+    var block = [];
+    var firstAction = actions[startIdx];
+    var currentIdx = startIdx;
+    var currentAction = actions[startIdx];
+
+    while (currentIdx < actions.length) {
+
+      currentAction = actions[currentIdx];
+      var nextAction = actions[currentIdx + 1] || {};
+
+      if (currentAction.indent === firstAction.indent) {
+
+        // If first action... (will always be a type: "IF")
+        if (currentAction.id === firstAction.id && nextAction.indent === currentAction.indent + 1) {
+
+          var then = buildBlock(currentIdx + 1);
+
+          block.push({
+            type: "IF",
+            condition: currentAction.value,
+            then: then.block
+          });
+
+          currentIdx = then.lastProcessedIdx + 1;
+
+        }
+        else if (currentAction.id === firstAction.id && nextAction.indent <= currentAction.indent) {
+
+          block.push({
+            type: "IF",
+            condition: currentAction.value,
+            then: []
+          });
+
+          currentIdx++;
+
+        }
+        else if (currentAction.id === firstAction.id && !nextAction.id) {
+
+          block.push({
+            type: "IF",
+            condition: currentAction.value,
+            then: []
+          });
+
+          return {
+            lastProcessedIdx: currentIdx,
+            block
+          }
+
+        }
+
+        // Else if...
+        else if (currentAction.type === "ELSEIF" && nextAction.indent === currentAction.indent + 1) {
+
+          var then = buildBlock(currentIdx + 1);
+
+          block.push({
+            type: "ELSEIF",
+            condition: currentAction.value,
+            then: then.block
+          });
+
+          currentIdx = then.lastProcessedIdx + 1;
+        }
+        else if (currentAction.type === "ELSEIF" && nextAction.indent <= currentAction.indent) {
+          block.push({
+            type: "ELSEIF",
+            condition: currentAction.value,
+            then: []
+          });
+
+          currentIdx++;
+        }
+        else if (currentAction.type === "ELSEIF" && !nextAction.id) {
+          block.push({
+            type: "IF",
+            condition: currentAction.value,
+            then: []
+          });
+
+          return {
+            lastProcessedIdx: currentIdx,
+            block
+          }
+        }
+
+        // else
+        else if (currentAction.type === "ELSE" && nextAction.indent === currentAction.indent + 1) {
+          var then = buildBlock(currentIdx + 1);
+
+          block.push({
+            type: "ELSE",
+            then: then.block
+          });
+
+          currentIdx = then.lastProcessedIdx + 1;
+        }
+        // this action breaks the rules of If/elseif/else
+        else {
+          return {
+            lastProcessedIdx: currentIdx - 1,
+            block
+          }
+        }
+      } else {
+        return {
+          lastProcessedIdx: currentIdx - 1,
+          block
+        }
+      }
+    }
+
+    return {
+      lastProcessedIdx: currentIdx,
+      block
+    }
+
+  }
 
 };

@@ -20,7 +20,7 @@ module.exports = {
 
     browser
       .using(testVars)
-<%- test.generateActionBlock(6, " ") %>      .end();
+<%- test.generateActionBlock(3, " ") %>      .end();
 
   }<% }); %>,
   afterEach : function(browser, done) {

@@ -14,7 +14,7 @@ module.exports.bindComponents = function(browser) {
     },
     actions: () => {
       return browser
-  <%- component.generateActionBlock(8, " ") %>        .endComponent();
+<%- component.generateActionBlock(4) %>        .endComponent();
     }
   }
 <% }); %>

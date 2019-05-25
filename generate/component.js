@@ -25,7 +25,7 @@ module.exports.generateFile = function(testData, fileStructure, rootPath) {
       return {
         name: compName,
         variables: component.variables.map((variable) => ({...variable, defaultValue: prepStrings.prepForArgString(variable.defaultValue)})),
-        generateActionBlock: (indent, indentChar) =>  generateActionBlock(component, testData, indent, indentChar)
+        generateActionBlock: (indent) =>  generateActionBlock(component, testData, indent)
       }
     })
   });

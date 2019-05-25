@@ -6,10 +6,10 @@ var _ = require('lodash');
 var arrangeActionsIntoBlocks = require('./blocks/arrange');
 var generateLineArrayFromBlock = require('./blocks/actions').generateLineArrayFromBlock;
 
-module.exports = function(test, testData) {
+module.exports = function(test, testData, indent) {
 
   var rootBlock = arrangeActionsIntoBlocks(test.actions);
-  var lineArray = generateLineArrayFromBlock(rootBlock, testData, 3);
+  var lineArray = generateLineArrayFromBlock(rootBlock, testData, indent || 3);
   var renderedString = generateStringFromLineArray(lineArray);
 
   return renderedString;

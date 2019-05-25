@@ -3,8 +3,11 @@ var suitesGenerator = require('./generate/suites');
 var componentGenerator = require('./generate/component');
 var envsGenerator = require('./generate/envs');
 var fs = require('fs-extra');
+var VERSION = require('./package.json').version;
 
 function generate() {
+
+  console.log(`nightwatch-generator@${VERSION}`);
 
   // Initial in-memory file structure
   var fileStructure = [
