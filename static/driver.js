@@ -116,8 +116,6 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
-        // console.log(Actions["FULL_PAGELOAD"].name);
-
         var renderedUrl = renderWithVars(url, getVars(browser));
         var description = renderWithVars(description, getVars(browser));
         var techDescription = `${Actions["FULL_PAGELOAD"].name} ${renderedUrl}`;
@@ -126,7 +124,7 @@ module.exports.bindDriver = function(browser) {
 
         if (resize) browser.resizeWindow(width, height);
         if (complete) {
-          browser._pollUntilDOMComplete(renderedUrl, timeout, (success) => {
+          browser._pollUntilDOMComplete(timeout, (success) => {
             if (!success) {
               if (cb) return cb(false);
               if (optional) return onOptionalFailed({description, techDescription, reason: "Page never completely loaded."});
@@ -1043,16 +1041,16 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "_pollUntilDOMComplete": (url, timeout, cb) => {
+    "_pollUntilDOMComplete": (timeout, cb) => {
 
       var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
       var currentAttempt = 0;
 
-      function checkForDomComplete(url) {
+      function checkForDomComplete() {
         browser.execute(
-          prepStringFuncForExecute(`function(url) {
-            return document.readyState === "complete" && window.location.href === url;
-          }`), [url], function(result) {
+          prepStringFuncForExecute(`function() {
+            return document.readyState === "complete";
+          }`), [], function(result) {
 
             if (!result.value && currentAttempt < attempts) {
               currentAttempt++;
@@ -1067,7 +1065,7 @@ module.exports.bindDriver = function(browser) {
           });
       }
 
-      checkForDomComplete(url);
+      checkForDomComplete();
 
       return browser;
     }
