@@ -1,4 +1,4 @@
-module.exports.generateJson = function(testData, fileStructure, rootPath) {
+module.exports.generateJsonFile = function(testData, fileStructure, rootPath) {
 
   var envs = testData.envs.map((env) => ({
     name: env.name,
@@ -11,7 +11,7 @@ module.exports.generateJson = function(testData, fileStructure, rootPath) {
   }));
 
   fileStructure.push(
-    { path: ["common", "environments.json"], content: JSON.stringify(envs, null, 2) },
+    { path: rootPath.concat(["environments.json"]), content: JSON.stringify(envs, null, 2) },
   )
 
 

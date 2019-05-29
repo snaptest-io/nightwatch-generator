@@ -20,6 +20,7 @@ module.exports = function(data) {
         generateActionBlock: (indent, indentChar) =>  generateActionBlock(test, testData, indent, indentChar),
         variables: test.variables.map((variable) => ({...variable, defaultValue: prepStrings.prepForArgString(variable.defaultValue)})),
         name: test.name,
+        id: test.id
       }
     })
   });

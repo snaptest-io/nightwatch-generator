@@ -5,7 +5,7 @@
 ********************************* */
 
 var Variables = require('<%= relPathToRoot %>common/variables.js');
-var Hooks = require('<%= relPathToRoot %>common/hooks.js');
+var Hooks = require('<%= relPathToRoot %>common/resulthooks.js');
 
 module.exports = {
 <% tests.forEach((test, idx) => { %>
@@ -19,14 +19,14 @@ module.exports = {
     });
 
     browser
-      .using(testVars)
+      .startTest(testVars, "<%= test.id %>")
 <%- test.generateActionBlock(3, " ") %>      .end();
 
   }<% }); %>,
   afterEach : function(browser, done) {
-    Hooks.afterEachTest(browser, done, {});
+    Hooks.afterEachTest(browser, done);
   },
   after: function(browser, done) {
-    Hooks.afterEachSuite(browser, done, {});
+    Hooks.afterEachSuite(browser, done);
   }
 };

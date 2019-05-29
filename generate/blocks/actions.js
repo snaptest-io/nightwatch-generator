@@ -62,6 +62,10 @@ const actions = {
     render: (action, selector, value, meta) =>
       `.click(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
+  "DOUBLECLICK": {
+    render: (action, selector, value, meta) =>
+      `.doubleClick(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
+  },
   "SUBMIT": {
     render: (action, selector, value, meta) =>
       `.formSubmit(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
@@ -195,20 +199,10 @@ const actions = {
     render: (action, selector, value, meta) =>
       `// ${value}`
   },
-  // "MOUSEOVER": {
-  //   render: (action, selector, value, meta) =>
-  //     `.moveToElement(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
-  // },
-  // "KEYDOWN": {
-  //   render: (action, selector, value, meta) => `
-  //     KeyDown(${genSelector(action)}, ${buildValueString(action.selector)}, ${buildDescription(description)}${buildEnding(line, blocks)};
-  //   `
-  // },
-  // "DOUBLECLICK": {
-  //   render: (action, selector, value, meta) => `
-  //     DoubleClick(${genSelector(action)}, ${buildValueString(action.selector)}, ${buildValueString(action.selectorType)}, ${buildDescription(description)}${buildEnding(line, blocks)};
-  //   `
-  // }
+  "DYNAMIC_VAR": {
+    render: (action, selector, value, meta) =>
+      `.addDynamicVar(${buildActionParams(action, {selector, selectorType: action.selectorType, varName: action.value})})`
+  }
 };
 
 const generateLineArrayFromBlock = (block, testData, indent) => {
@@ -224,7 +218,7 @@ const generateLineArrayFromBlock = (block, testData, indent) => {
       value = action.regex ? prepForArgRegExpString(action.value) : prepForArgString(action.value)
     }
 
-    var lines = "// NOT IMPLEMENTED";
+    var lines = `// ${action.type} NOT IMPLEMENTED`;
 
     if (actions[action.type]) {
       var lines = actions[action.type].render(action, selector, value, testData);

@@ -39,7 +39,12 @@ module.exports.generateFlat = function(testData, fileStructure, testsPath) {
           suiteName,
           tests: [test],
           relPathToRoot: relPathToRoot
-        })
+        }),
+        suiteMeta: {
+          suiteName,
+          tests: [test],
+          relPathToRoot
+        }
       })
 
     }
