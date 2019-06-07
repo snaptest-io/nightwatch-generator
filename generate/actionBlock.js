@@ -11,7 +11,7 @@ module.exports = function(test, testData, indent) {
 
   test.actions.forEach((action) => {
     if (!actions[action.type]) {
-      console.warn(`WARNING: The "${ActionsByConstant[action.type].name}" action in test "${test.name}" is not implemented and will be skipped.`);
+      console.warn(`WARNING: The "${ActionsByConstant[action.type] ? ActionsByConstant[action.type].name : action.type}" action in test "${test.name}" is not implemented and will be skipped.`);
     }
   });
 
