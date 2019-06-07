@@ -155,7 +155,7 @@ module.exports.bindDriver = function(browser) {
                   techDescription,
                   actionType,
                   error: "Page never completely loaded.",
-                  duration: Date.now() - startTime
+                  duration: Date.now() - then
                 })
               }
             } else {

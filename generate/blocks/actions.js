@@ -247,6 +247,7 @@ const generateLineArrayFromBlock = (block, testData, indent) => {
 };
 
 module.exports.generateLineArrayFromBlock = generateLineArrayFromBlock;
+module.exports.actions = actions;
 
 function prepForArgString(string) {
   return string
