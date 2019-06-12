@@ -110,10 +110,75 @@ const actions = {
         promptResponse: action.promptResponse
       })})`
   },
+  "CSV_INSERT": {
+    render: (action, selector, value, meta) =>  `.insertCSVRow(${buildActionParams(action, {
+      csvName: action.csvName,
+      columns: JSON.stringify(action),
+    })})`
+  },
+  "DOWHILEBLOCK": {
+    render: (action, selector, value, meta) => {
+      return [
+        [0, ".doWhile("],
+        ...generateLineArrayFromBlock(action.block, meta, 1),
+        [0, ")"],
+      ]
+
+    }
+  },
+  "DOWHILE": {
+    render: (action, selector, value, meta) => {
+
+      var conditionSelector = prepForArgString(action.condition.selector || "");
+      var conditionValue = _.isString(action.condition.value) ? prepForArgString(action.condition.value) : action.condition.value;
+
+      if (action.then && action.then.length === 0) {
+        return []
+      }
+
+      return [
+        [0, "browser.do((b) => { b"],
+          ...generateLineArrayFromBlock(action.then, meta, 1),
+        [0, "}),"],
+        [0, `browser.if${actions[action.condition.type].render(action.condition, conditionSelector, conditionValue, meta)}`],
+      ]
+
+    }
+  },
+  "WHILEBLOCK": {
+    render: (action, selector, value, meta) => {
+      return [
+        [0, ".while("],
+        ...generateLineArrayFromBlock(action.block, meta, 1),
+        [0, ")"],
+      ]
+
+    }
+  },
+  "WHILE": {
+    render: (action, selector, value, meta) => {
+
+      var conditionSelector = prepForArgString(action.condition.selector || "");
+      var conditionValue = _.isString(action.condition.value) ? prepForArgString(action.condition.value) : action.condition.value;
+
+      if (action.then && action.then.length === 0) {
+        return []
+      }
+
+      return [
+        [0, `browser.if${actions[action.condition.type].render(action.condition, conditionSelector, conditionValue, meta)},`],
+        [0, "browser.do((b) => { b"],
+        ...generateLineArrayFromBlock(action.then, meta, 1),
+        [0, "})"],
+
+      ]
+
+    }
+  },
   "IFBLOCK": {
     render: (action, selector, value, meta) => {
       return [
-        [0, ".flow("],
+        [0, ".condition("],
         ...generateLineArrayFromBlock(action.block, meta, 1),
         [0, ")"],
       ]

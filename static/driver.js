@@ -1260,6 +1260,18 @@ module.exports.bindDriver = function(browser) {
 
     },
 
+    "insertCSVRow": (args) => {
+
+      var { selector, selectorType, varName, description, cb, optional = false, timeout, actionType = "CSV_INSERT" } = args;
+
+      browser.perform(() => {
+        // console.log("cool");
+      });
+
+      return browser;
+
+    },
+
     "addDynamicVar": (args) => {
 
       var { selector, selectorType, varName, description, cb, optional = false, timeout, actionType = "DYNAMIC_VAR" } = args;
@@ -1497,6 +1509,15 @@ module.exports.bindDriver = function(browser) {
     })
   };
 
+  browser.do = (cb) => {
+    return () => ({
+      type: "do",
+      execute: (b) => {
+        cb(b)
+      }
+    })
+  };
+
   browser.else = (cb) => {
     return () => ({
       type: "else",
@@ -1508,10 +1529,87 @@ module.exports.bindDriver = function(browser) {
 
   /* ***************************************************************************************
 
-    Conditional flow control:
+  Dowhile control:
+
+    Example:
+
+   .doWhile(
+     b.do((b) => { b
+       .elementPresent(`div > div:nth-of-type(3) > div:nth-of-type(2) > h1`, `CSS`, `El is present`, null)
+     }),
+     b.if.elementPresent(`div > div:nth-of-type(3) > div:nh-of-type(2) > h1`, `CSS`, `El is present`, null),
+   )
+
+**************************************************************************************** */
+
+  browser.doWhile = function(doBlock, doWhile) {
+
+    browser.perform(() => {
+
+      (function perform() {
+
+        doWhile().execute(browser, (success) => {
+
+          if (success) {
+            doBlock().execute(browser);
+            perform();
+          }
+
+        });
+
+      })();
+
+    });
+
+    return browser;
+
+  };
+
+  /* ***************************************************************************************
+
+   While control:
+
+     Example:
+
+    .while(
+      b.if.elementPresent(`div > div:nth-of-type(3) > div:nh-of-type(2) > h1`, `CSS`, `El is present`, null),
+      b.do((b) => { b
+        .elementPresent(`div > div:nth-of-type(3) > div:nth-of-type(2) > h1`, `CSS`, `El is present`, null)
+      }),
+    )
+
+ **************************************************************************************** */
+
+  browser.while = function(doWhile, doBlock) {
+
+    browser.perform(() => {
+
+      (function perform() {
+
+        doWhile().execute(browser, (success) => {
+
+          if (success) {
+            doBlock().execute(browser);
+            perform();
+          }
+
+        });
+
+      })();
+
+    });
+
+    return browser;
+
+  };
+
+
+  /* ***************************************************************************************
+
+    Condition control:
       Example:
 
-     .flow(
+     .condition(
        b.if.elementPresent(`div > div:nth-of-type(3) > div:nh-of-type(2) > h1`, `CSS`, `El is present`, null),
        b.then((b) => { b
          .elementPresent(`div > div:nth-of-type(3) > div:nth-of-type(2) > h1`, `CSS`, `El is present`, null)
@@ -1535,7 +1633,7 @@ module.exports.bindDriver = function(browser) {
 
   **************************************************************************************** */
 
-  browser.flow = function(...condArray) {
+  browser.condition = function(...condArray) {
 
     var cIndex = 0;
 
