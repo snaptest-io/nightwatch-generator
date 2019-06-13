@@ -212,6 +212,33 @@ module.exports.bindDriver = function(browser) {
 
     },
 
+    "snapPause": (args) => {
+
+      const { value, description, cb, actionType = "PAUSE" } = args;
+
+      browser.perform(() => {
+
+        var then = Date.now();
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["PAUSE"].name} "${value}"`;
+
+        browser.pause(value);
+
+        onActionSuccess({
+          description,
+          techDescription,
+          actionType,
+          duration: Date.now() - then
+        });
+
+        if (cb) cb(true);
+
+      });
+
+      return browser;
+
+    },
+
     "elementPresent": (args) => {
 
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "EL_PRESENT_ASSERT" } = args;
@@ -1512,8 +1539,9 @@ module.exports.bindDriver = function(browser) {
   browser.do = (cb) => {
     return () => ({
       type: "do",
-      execute: (b) => {
-        cb(b)
+      execute: (b, blockSuccess) => {
+        cb(b);
+        b.perform(() => blockSuccess() )
       }
     })
   };
@@ -1551,8 +1579,9 @@ module.exports.bindDriver = function(browser) {
         doWhile().execute(browser, (success) => {
 
           if (success) {
-            doBlock().execute(browser);
-            perform();
+            doBlock().execute(browser, () => {
+              perform();
+            });
           }
 
         });
@@ -1589,8 +1618,9 @@ module.exports.bindDriver = function(browser) {
         doWhile().execute(browser, (success) => {
 
           if (success) {
-            doBlock().execute(browser);
-            perform();
+            doBlock().execute(browser, () => {
+              perform();
+            });
           }
 
         });

@@ -13,7 +13,7 @@ const actions = {
   },
   "PAUSE": {
     render: (action, selector, value, line ) =>
-      `.pause(${buildActionParams(action, { value })})`
+      `.snapPause(${buildActionParams(action, { value })})`
   },
   "INPUT": {
     render: (action, selector, value, meta) =>
