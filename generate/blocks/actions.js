@@ -116,6 +116,43 @@ const actions = {
       columns: JSON.stringify(action.columns),
     })})`
   },
+
+  "TRYBLOCK": {
+    render: (action, selector, value, meta) => {
+      return [
+        [0, ".tryCatch("],
+        ...generateLineArrayFromBlock(action.block, meta, 1),
+        [0, ")"],
+      ]
+
+    }
+  },
+
+  "TRY": {
+    render: (action, selector, value, meta) => {
+      return [
+        [0, "browser.do((b) => { b"],
+        ...generateLineArrayFromBlock(action.then, meta, 1),
+        [0, "}),"],
+      ]
+    }
+  },
+
+  "CATCH": {
+    render: (action, selector, value, meta) => {
+      return [
+        [0, "browser.do((b) => { b"],
+        ...generateLineArrayFromBlock(action.then, meta, 1),
+        [0, "})"],
+      ]
+    }
+  },
+
+  "BREAK": {
+    render: (action, selector, value, meta) =>
+      `.break(${buildActionParams(action)})`
+  },
+
   "DOWHILEBLOCK": {
     render: (action, selector, value, meta) => {
       return [

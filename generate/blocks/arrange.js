@@ -33,6 +33,11 @@ module.exports = (actions) => {
           block.push({type: "WHILEBLOCK", block: doWhileBlock.block || []});
           currentIdx = doWhileBlock.lastProcessedIdx + 1;
         }
+        else if (currentAction.type === "TRY") {
+          var tryBlock = buildTryBlock(currentIdx);
+          block.push({type: "TRYBLOCK", block: tryBlock.block || []});
+          currentIdx = tryBlock.lastProcessedIdx + 1;
+        }
         else {
           block.push(actions[currentIdx]);
           currentIdx++;
@@ -311,6 +316,108 @@ module.exports = (actions) => {
           }
 
         }
+
+      } else {
+        return {
+          lastProcessedIdx: currentIdx - 1,
+          block
+        }
+      }
+    }
+
+    return {
+      lastProcessedIdx: currentIdx,
+      block
+    }
+
+  }
+
+  function buildTryBlock(startIdx) {
+
+    var block = [];
+    var firstAction = actions[startIdx];
+    var currentIdx = startIdx;
+    var currentAction = actions[startIdx];
+
+    while (currentIdx < actions.length) {
+
+      currentAction = actions[currentIdx];
+      var nextAction = actions[currentIdx + 1] || {};
+
+      if (currentAction.indent === firstAction.indent) {
+
+        // If first action... (will always be a type: "TRY")
+        if (currentAction.id === firstAction.id && nextAction.indent === currentAction.indent + 1) {
+
+          var then = buildBlock(currentIdx + 1);
+
+          block.push({
+            type: "TRY",
+            condition: currentAction.value,
+            then: then.block
+          });
+
+          currentIdx = then.lastProcessedIdx + 1;
+
+        }
+        else if (currentAction.id === firstAction.id && nextAction.indent <= currentAction.indent) {
+
+          block.push({
+            type: "TRY",
+            condition: currentAction.value,
+            then: []
+          });
+
+          currentIdx++;
+
+        }
+        else if (currentAction.id === firstAction.id && !nextAction.id) {
+
+          block.push({
+            type: "TRY",
+            condition: currentAction.value,
+            then: []
+          });
+
+          return {
+            lastProcessedIdx: currentIdx,
+            block
+          }
+
+        }
+
+        // Catch block:
+        else if (currentAction.type === "CATCH" && nextAction.indent === currentAction.indent + 1) {
+
+          var then = buildBlock(currentIdx + 1);
+
+          block.push({
+            type: "CATCH",
+            then: then.block
+          });
+
+          currentIdx = then.lastProcessedIdx + 1;
+        }
+        else if (currentAction.type === "CATCH" && nextAction.indent <= currentAction.indent) {
+          block.push({
+            type: "CATCH",
+            then: []
+          });
+
+          currentIdx++;
+        }
+        else if (currentAction.type === "CATCH" && !nextAction.id) {
+          block.push({
+            type: "CATCH",
+            then: []
+          });
+
+          return {
+            lastProcessedIdx: currentIdx,
+            block
+          }
+        }
+
 
       } else {
         return {

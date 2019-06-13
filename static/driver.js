@@ -113,6 +113,12 @@ module.exports.bindDriver = function(browser) {
     return (browser.compVarStack.length > 0 ? browser.compVarStack[browser.compVarStack.length -1] : browser.vars).getAll();
   }
 
+  function blockCancelled(browser) {
+
+    return (browser.loopStack.length > 0 && browser.loopStack[browser.loopStack.length - 1].break)
+      || (browser.tryContextStack.length > 0 && browser.tryContextStack[browser.tryContextStack.length - 1].error);
+  }
+
   function onCriticalDriverError(args) {
 
     const { error, techDescription } = args;
@@ -153,15 +159,25 @@ module.exports.bindDriver = function(browser) {
       ...(selector && {selector})
     });
 
-    browser.assert.ok(optional ? true : false, description ? `${description} ${techDescription} - ${error}` : `${techDescription} - ${error}`);
+    // check for being in a try context:
+    if (!optional && browser.tryContextStack.length > 0) {
+      browser.tryContextStack[browser.tryContextStack.length - 1].error = true;
+      browser.assert.ok(true, description ? `${description} ${techDescription} - ${error}` : `${techDescription} - ${error}`);
+    } else {
+      browser.assert.ok(optional ? true : false, description ? `${description} ${techDescription} - ${error}` : `${techDescription} - ${error}`);
+    }
 
   }
 
   browser.startTest = (testVars, snapTestId) => {
+
     browser.vars = testVars;
     browser.snapTestId = snapTestId;
     browser.snapResults = [];
     browser.snapCsvs = [];
+    browser.tryContextStack = [];
+    browser.loopStack = [];
+
     return browser;
   };
 
@@ -195,6 +211,8 @@ module.exports.bindDriver = function(browser) {
       var { url, width, height, description, cb, resize, complete, optional = false, timeout, actionType = "FULL_PAGELOAD" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         var renderedUrl = renderWithVars(url, getVars(browser));
@@ -252,6 +270,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         var description = renderWithVars(description, getVars(browser));
         var techDescription = `${Actions["BACK"].name}`;
@@ -280,6 +300,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         var description = renderWithVars(description, getVars(browser));
         var techDescription = `${Actions["PAUSE"].name} "${value}"`;
@@ -301,11 +323,44 @@ module.exports.bindDriver = function(browser) {
 
     },
 
+    "break": (args) => {
+
+      const { value, description, cb, actionType = "BREAK" } = args;
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["BREAK"].name}`;
+
+        if (browser.loopStack.length > 0) {
+          browser.loopStack[browser.loopStack.length - 1].break = true;
+        }
+
+        onActionSuccess({
+          description,
+          techDescription,
+          actionType,
+          duration: Date.now() - then
+        });
+
+        if (cb) cb(true);
+
+      });
+
+      return browser;
+
+    },
+
     "elementPresent": (args) => {
 
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "EL_PRESENT_ASSERT" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         var description = renderWithVars(description, getVars(browser));
@@ -336,6 +391,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         var description = renderWithVars(description, getVars(browser));
         var techDescription = `${Actions["REFRESH"].name}`;
@@ -362,6 +419,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         var description = renderWithVars(description, getVars(browser));
         var techDescription = `${Actions["FORWARD"].name}`;
@@ -387,6 +446,8 @@ module.exports.bindDriver = function(browser) {
       var { localstorage, sessionstorage, description, cb, optional = false, timeout, actionType = "CLEAR_CACHES" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         var description = renderWithVars(description, getVars(browser));
@@ -435,6 +496,8 @@ module.exports.bindDriver = function(browser) {
       var { value, description, regex = false, cb, optional = false, timeout, actionType = "PATH_ASSERT" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         var pathname = renderWithVars(value, getVars(browser));
@@ -499,6 +562,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         var script = renderWithVars(value, getVars(browser));
         var techDescription = `${Actions["EXECUTE_SCRIPT"].name}`;
@@ -542,6 +607,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         var techDescription = `${Actions["CHANGE_WINDOW"].name}`;
 
@@ -565,6 +632,8 @@ module.exports.bindDriver = function(browser) {
       var { x, y, description, cb, optional = false, timeout, actionType = "SCROLL_WINDOW" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         var techDescription = `${Actions["SCROLL_WINDOW"].name} to X:${x} & Y:${y} `;
@@ -599,6 +668,8 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", x, y, description, cb, optional = false, timeout, actionType = "SCROLL_ELEMENT" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
@@ -644,6 +715,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SCROLL_WINDOW_ELEMENT"].name} ... using "${selector}" (${selectorType})`;
@@ -687,6 +760,8 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "MOUSEDOWN" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         var techDescription = `${Actions["MOUSEDOWN"].name} ... using "${selector}" (${selectorType})`;
@@ -746,6 +821,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         var techDescription = `${Actions["DOUBLECLICK"].name} ... using "${selector}" (${selectorType})`;
 
@@ -800,6 +877,8 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", value, description, cb, optional = false, timeout, actionType = "INPUT" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
@@ -891,6 +970,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["STYLE_ASSERT"].name} ... is "${style}: "${value}" ...  using "${selector}" (${selectorType})`;
@@ -957,6 +1038,8 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", value, regex = false, description, cb, optional = false, timeout, actionType = "VALUE_ASSERT" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
@@ -1039,6 +1122,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["EL_NOT_PRESENT_ASSERT"].name} ... using "${selector}" (${selectorType})`;
@@ -1055,6 +1140,8 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "FOCUS" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
@@ -1103,6 +1190,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SUBMIT"].name} ... using "${selector}" (${selectorType})`;
@@ -1145,6 +1234,8 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "BLUR" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
@@ -1191,6 +1282,8 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType = "CSS", value, regex = false, description, cb, optional = false, timeout, actionType = "TEXT_ASSERT" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         selector = renderWithVars(selector, getVars(browser));
@@ -1250,6 +1343,8 @@ module.exports.bindDriver = function(browser) {
       var { value, description, cb, optional = false, timeout, actionType = "EVAL" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         var variables = browser.vars.getAllObject();
@@ -1313,6 +1408,8 @@ module.exports.bindDriver = function(browser) {
 
       browser.perform(() => {
 
+        if (blockCancelled(browser)) return;
+
         var then = Date.now();
         var renderedPrompt = renderWithVars(promptResponse, browser.vars.getAll());
         var techDescription = `${Actions["DIALOG"].name} ... `;
@@ -1354,6 +1451,8 @@ module.exports.bindDriver = function(browser) {
       var { csvName, columns, description, cb, optional = false, timeout, actionType = "CSV_INSERT" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         columns  = JSON.parse(columns);
         var then = Date.now();
@@ -1441,6 +1540,8 @@ module.exports.bindDriver = function(browser) {
       var { selector, selectorType, varName, description, cb, optional = false, timeout, actionType = "DYNAMIC_VAR" } = args;
 
       browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
 
         var then = Date.now();
         var variables = browser.vars.getAllObject();
@@ -1711,6 +1812,8 @@ module.exports.bindDriver = function(browser) {
 
     browser.perform(() => {
 
+      browser.loopStack.push({break: false});
+
       (function perform() {
 
         doWhile().execute(browser, (success) => {
@@ -1719,6 +1822,8 @@ module.exports.bindDriver = function(browser) {
             doBlock().execute(browser, () => {
               perform();
             });
+          } else {
+            browser.loopStack.pop();
           }
 
         });
@@ -1750,6 +1855,8 @@ module.exports.bindDriver = function(browser) {
 
     browser.perform(() => {
 
+      browser.loopStack.push({break: false});
+
       (function perform() {
 
         doWhile().execute(browser, (success) => {
@@ -1758,12 +1865,49 @@ module.exports.bindDriver = function(browser) {
             doBlock().execute(browser, () => {
               perform();
             });
+          } else {
+            browser.loopStack.pop();
           }
 
         });
 
       })();
 
+    });
+
+    return browser;
+
+  };
+
+  /* ***************************************************************************************
+
+   Try/catch control:
+
+     Example:
+
+    .tryCatch(
+      b.do((b) => { b
+        .elementPresent(`div > div:nth-of-type(3) > div:nth-of-type(2) > h1`, `CSS`, `El is present`, null)
+      }),
+      b.do((b) => { b
+        .elementPresent(`div > div:nth-of-type(3) > div:nth-of-type(2) > h1`, `CSS`, `El is present`, null)
+      })
+    )
+
+ **************************************************************************************** */
+
+  browser.tryCatch = function(doBlock, catchBlock) {
+
+    browser.perform(() => {
+      browser.tryContextStack.push({error: false});
+      doBlock().execute(browser, () => {});
+      browser.perform(() => {
+        if (blockCancelled(browser)) {
+          browser.tryContextStack.pop();
+          catchBlock().execute(browser, () => {
+          })
+        }
+      })
     });
 
     return browser;
