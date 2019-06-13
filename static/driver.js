@@ -9,6 +9,67 @@ module.exports.bindDriver = function(browser) {
 
   var POLLING_RATE = 300;
 
+  var snptEvaluator =
+    `(function() {      
+      window["snptEvaluator"] = function (str, vars) {
+      
+        var copyOfVars = {};
+    
+        for (var i in vars) {
+          copyOfVars[i] = vars[i];
+        }
+    
+        var regex = /\\$\\(/gi, result, indices = [];
+        while ( (result = regex.exec(str)) ) {
+          indices.push(result.index);
+        }
+    
+        var evalData = indices.map((index) => ({
+          start: index,
+          end: null,
+          value: null
+        }));
+    
+        evalData = evalData.map((evalD) => {
+          var opened = 0;
+          var closed = 0;
+          var currentIdx = evalD.start + 2;
+          var currentChar = str.charAt(currentIdx);
+          var result = "";
+    
+          while(currentChar) {
+            if (currentChar === "(") {
+              opened++;
+            }
+            else if (currentChar === ")") {
+              closed++;
+              if (closed > opened) break;
+            }
+    
+            result+=currentChar;
+            currentIdx++;
+            currentChar = str.charAt(currentIdx);
+          }
+    
+          return {...evalD, result: eval(result), end: currentIdx, length: currentIdx - evalD.start}
+    
+        })
+    
+        var newString = str;
+    
+        evalData.forEach((evalD) => {
+          var nextSubIdx = newString.indexOf("$(");
+          newString = newString.split("");
+          newString.splice(nextSubIdx, evalD.length + 1, evalD.result + "");
+          newString = newString.join("");
+        });
+    
+        return newString;
+      
+      }
+    })();
+  `;
+
   var snptGetElement =
     `(function() {
 
@@ -100,6 +161,7 @@ module.exports.bindDriver = function(browser) {
     browser.vars = testVars;
     browser.snapTestId = snapTestId;
     browser.snapResults = [];
+    browser.snapCsvs = [];
     return browser;
   };
 
@@ -1289,10 +1351,85 @@ module.exports.bindDriver = function(browser) {
 
     "insertCSVRow": (args) => {
 
-      var { selector, selectorType, varName, description, cb, optional = false, timeout, actionType = "CSV_INSERT" } = args;
+      var { csvName, columns, description, cb, optional = false, timeout, actionType = "CSV_INSERT" } = args;
 
       browser.perform(() => {
-        // console.log("cool");
+
+        columns  = JSON.parse(columns);
+        var then = Date.now();
+        var variables = browser.vars.getAllObject();
+        var techDescription = `${Actions["CSV_INSERT"].name}`;
+
+        browser.execute(prepStringFuncForExecute(`function(columns, variables) {
+          
+          ${snptEvaluator}
+          ${snptGetElement}
+    
+          try {
+                   
+            var values = [];
+
+            columns.forEach((column) => {
+              try {
+
+                selector = snptEvaluator(column.selector, variables);
+                
+                var colEl = snptGetElement(selector, "CSS");
+
+                if (colEl) {
+                  var value = colEl[column.select];
+
+                  if (value) values.push(value);
+                  else {
+                    values.push(null);
+                  }
+
+                } else {
+                  values.push(null);
+                }
+
+              } catch(e) {
+                values.push(null);
+              }
+
+
+            });
+
+            return {success: true, colValues: values};
+
+          } catch(e) {
+            return { criticalError: e.toString() }
+          }
+    
+        }`), [columns, variables], function(result) {
+
+          if (result.value && result.value.success) {
+
+            if (!browser.snapCsvs[csvName]) {
+              browser.snapCsvs[csvName] = [columns.map((column) => column.columnName)]
+            }
+
+            browser.snapCsvs[csvName].push(result.value.colValues);
+
+            onActionSuccess({
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then
+            });
+
+            if (cb) cb(true);
+          }
+          else if (result.value && result.value.criticalError) {
+            onCriticalDriverError({error: result.value.criticalError, techDescription});
+            if (cb) return cb(false);
+          }
+
+        });
+
+
+
+        // browser.snapCsvs[csvName].push();
       });
 
       return browser;

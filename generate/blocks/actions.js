@@ -113,7 +113,7 @@ const actions = {
   "CSV_INSERT": {
     render: (action, selector, value, meta) =>  `.insertCSVRow(${buildActionParams(action, {
       csvName: action.csvName,
-      columns: JSON.stringify(action),
+      columns: JSON.stringify(action.columns),
     })})`
   },
   "DOWHILEBLOCK": {
