@@ -22,7 +22,18 @@ module.exports = (actions) => {
           var ifBlock = buildIfBlock(currentIdx);
           block.push({type: "IFBLOCK", block: ifBlock.block});
           currentIdx = ifBlock.lastProcessedIdx + 1;
-        } else {
+        }
+        else if (currentAction.type === "DOWHILE") {
+          var doWhileBlock = buildDoWhileBlock(currentIdx);
+          block.push({type: "DOWHILEBLOCK", block: doWhileBlock.block || []});
+          currentIdx = doWhileBlock.lastProcessedIdx + 1;
+        }
+        else if (currentAction.type === "WHILE") {
+          var doWhileBlock = buildWhileBlock(currentIdx);
+          block.push({type: "WHILEBLOCK", block: doWhileBlock.block || []});
+          currentIdx = doWhileBlock.lastProcessedIdx + 1;
+        }
+        else {
           block.push(actions[currentIdx]);
           currentIdx++;
         }
@@ -156,6 +167,151 @@ module.exports = (actions) => {
             block
           }
         }
+      } else {
+        return {
+          lastProcessedIdx: currentIdx - 1,
+          block
+        }
+      }
+    }
+
+    return {
+      lastProcessedIdx: currentIdx,
+      block
+    }
+
+  }
+
+  function buildDoWhileBlock(startIdx) {
+
+    var block = [];
+    var firstAction = actions[startIdx];
+    var currentIdx = startIdx;
+    var currentAction = actions[startIdx];
+
+    while (currentIdx < actions.length) {
+
+      currentAction = actions[currentIdx];
+      var nextAction = actions[currentIdx + 1] || {};
+
+      if (currentAction.indent === firstAction.indent) {
+
+        // If first action... (will always be a type: "DOWHILE")
+        if (currentAction.id === firstAction.id && nextAction.indent === currentAction.indent + 1) {
+
+          var then = buildBlock(currentIdx + 1);
+
+          block.push({
+            type: "DOWHILE",
+            condition: currentAction.value,
+            then: then.block
+          });
+
+          currentIdx = then.lastProcessedIdx + 1;
+
+        }
+        else if (currentAction.id === firstAction.id && nextAction.indent <= currentAction.indent) {
+
+          block.push({
+            type: "DOWHILE",
+            condition: currentAction.value,
+            then: []
+          });
+
+          currentIdx++;
+
+        }
+        else if (currentAction.id === firstAction.id && !nextAction.id) {
+
+          block.push({
+            type: "DOWHILE",
+            condition: currentAction.value,
+            then: []
+          });
+
+          return {
+            lastProcessedIdx: currentIdx,
+            block
+          }
+
+        }
+
+        // this action breaks the rules of If/elseif/else
+        else {
+          return {
+            lastProcessedIdx: currentIdx - 1,
+            block
+          }
+        }
+      } else {
+        return {
+          lastProcessedIdx: currentIdx - 1,
+          block
+        }
+      }
+    }
+
+    return {
+      lastProcessedIdx: currentIdx,
+      block
+    }
+
+  }
+
+  function buildWhileBlock(startIdx) {
+
+    var block = [];
+    var firstAction = actions[startIdx];
+    var currentIdx = startIdx;
+    var currentAction = actions[startIdx];
+
+    while (currentIdx < actions.length) {
+
+      currentAction = actions[currentIdx];
+      var nextAction = actions[currentIdx + 1] || {};
+
+      if (currentAction.indent === firstAction.indent) {
+
+        // If first action... (will always be a type: "DOWHILE")
+        if (currentAction.id === firstAction.id && nextAction.indent === currentAction.indent + 1) {
+
+          var then = buildBlock(currentIdx + 1);
+
+          block.push({
+            type: "WHILE",
+            condition: currentAction.value,
+            then: then.block
+          });
+
+          currentIdx = then.lastProcessedIdx + 1;
+
+        }
+        else if (currentAction.id === firstAction.id && nextAction.indent <= currentAction.indent) {
+
+          block.push({
+            type: "WHILE",
+            condition: currentAction.value,
+            then: []
+          });
+
+          currentIdx++;
+
+        }
+        else if (currentAction.id === firstAction.id && !nextAction.id) {
+
+          block.push({
+            type: "WHILE",
+            condition: currentAction.value,
+            then: []
+          });
+
+          return {
+            lastProcessedIdx: currentIdx,
+            block
+          }
+
+        }
+
       } else {
         return {
           lastProcessedIdx: currentIdx - 1,

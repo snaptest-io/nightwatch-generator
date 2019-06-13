@@ -9,6 +9,8 @@ var results = suiteMeta.tests.map((test) => {
   }
 });
 
+var csvs = {};
+
 var userHooks = {};
 
 try {
@@ -24,6 +26,7 @@ module.exports.afterEachTest = (browser, done) => {
   result.completed = true;
   result.passed = browser.snapResults.filter((result) => !result.success).length === 0;
   result.results = browser.snapResults;
+  csvs = Object.assign({}, csvs, browser.snapCsvs);
 
   if (typeof userHooks.afterEachTest === "function") {
     return userHooks.afterEachTest(browser, done, result);
@@ -59,7 +62,7 @@ const afterAll = (browser, done) => {
     tests_passed: results.filter((result) => result.passed).map((result) => result.testId),
     content: {
       tests: results,
-      csvs: []
+      csvs: csvs
     }
   };
 
