@@ -1577,7 +1577,9 @@ module.exports.bindDriver = function(browser) {
                   text += element.childNodes[i].textContent;
           
             text = text.replace(/(\\r\\n|\\n|\\r)/gm,"");
-            return text.trim();
+            
+            var rtrim = /^[\\s\\uFEFF\\xA0]+|[\\s\\uFEFF\\xA0]+$/g;
+            return text.replace(rtrim, '');
           
           }
     
@@ -1639,7 +1641,9 @@ module.exports.bindDriver = function(browser) {
               if (element.childNodes[i].textContent)
                 text += element.childNodes[i].textContent;
           text = text.replace(/(\\r\\n|\\n|\\r)/gm, "");
-          return text.trim();
+          
+          var rtrim = /^[\\s\\uFEFF\\xA0]+|[\\s\\uFEFF\\xA0]+$/g;
+          return text.replace(rtrim, '');
           
         } catch(e) {
           return { criticalError: e.toString() }
