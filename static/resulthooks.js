@@ -1,6 +1,7 @@
 var suiteMeta = require('./suiteMeta.json');
+var timeStart = Date.now();
 
-var results = suiteMeta.tests.map((test) => {
+var testResults = suiteMeta.tests.map((test) => {
   return {
     testId: test.id,
     results: [],
@@ -21,15 +22,17 @@ try {
 
 module.exports.afterEachTest = (browser, done) => {
 
-  var result = results.find((result) => result.testId === browser.snapTestId);
+  var testResult = testResults.find((result) => result.testId === browser.snapTestId);
 
-  result.completed = true;
-  result.passed = browser.snapResults.filter((result) => !result.success).length === 0;
-  result.results = browser.snapResults;
+  testResult.completed = true;
+  testResult.passed = browser.snapResults.filter((result) => !result.success).length === 0;
+  testResult.results = browser.snapResults;
+  testResult.duration = Date.now() - browser.snapStartTime;
+
   csvs = Object.assign({}, csvs, browser.snapCsvs);
 
   if (typeof userHooks.afterEachTest === "function") {
-    return userHooks.afterEachTest(browser, done, result);
+    return userHooks.afterEachTest(browser, done, testResult);
   } else {
     return done();
   }
@@ -39,7 +42,7 @@ module.exports.afterEachTest = (browser, done) => {
 module.exports.afterEachSuite = (browser, done) => {
   if (typeof userHooks.afterEachSuite === "function") {
     userHooks.afterEachSuite(browser, () => {
-      var completed = results.filter((result) => !result.completed).length === 0;
+      var completed = testResults.filter((result) => !result.completed).length === 0;
       if (completed) afterAll(browser, done);
       else done();
     });
@@ -55,13 +58,14 @@ const afterAll = (browser, done) => {
   var overallResults = {
     actions_failed: 0,
     actions_passed: 0,
-    duration: 0,
-    tests: results.map((result) => result.testId),
-    tests_num: results.length,
-    tests_passed_num: results.filter((result) => result.passed).length,
-    tests_passed: results.filter((result) => result.passed).map((result) => result.testId),
+    time_start: timeStart,
+    duration: testResults.reduce((acc, test) => acc + test.duration, 0),
+    tests: testResults.map((result) => result.testId),
+    tests_num: testResults.length,
+    tests_passed_num: testResults.filter((result) => result.passed).length,
+    tests_passed: testResults.filter((result) => result.passed).map((result) => result.testId),
     content: {
-      tests: results,
+      tests: testResults,
       csvs: csvs
     }
   };

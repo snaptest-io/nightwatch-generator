@@ -174,6 +174,7 @@ module.exports.bindDriver = function(browser) {
     browser.vars = testVars;
     browser.snapTestId = snapTestId;
     browser.snapResults = [];
+    browser.snapStartTime = Date.now();
     browser.snapCsvs = [];
     browser.tryContextStack = [];
     browser.loopStack = [];
