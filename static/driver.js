@@ -1,6 +1,8 @@
 const Actions = require('./actiondata').ActionsByConstant;
 const TIMEOUT = 5000;
 
+var Variables = require('./variables.js');
+
 module.exports.bindDriver = function(browser) {
 
   var oldBack = browser.back;
@@ -1734,8 +1736,29 @@ module.exports.bindDriver = function(browser) {
       checkForDomComplete();
 
       return browser;
+    },
+	
+	"component": (name, instanceVars) => {
+  	  browser.perform(() => {
+		Object.keys(instanceVars).map(function(key) {
+			instanceVars[key] = renderWithVars(instanceVars[key], getVars(browser))
+		});
+	  
+  	    // get defaults
+  	    var component = browser.components[name];
+  	    var defaultsVars = component.defaults;
+  	    var compVars = Variables.CompVars(browser.vars, defaultsVars, instanceVars)
+      
+  	    // call the component, pushing the new var context onto a stack.
+  	    browser.compVarStack.push(compVars);
+      
+  	    component.actions();
+      
+  	  })
+      
+  	  return browser;
+  
     }
-
   };
 
   /* ***************************************************************************************
