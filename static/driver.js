@@ -765,6 +765,7 @@ module.exports.bindDriver = function(browser) {
         if (blockCancelled(browser)) return;
 
         var then = Date.now();
+		selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["MOUSEDOWN"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout,
@@ -825,6 +826,7 @@ module.exports.bindDriver = function(browser) {
         if (blockCancelled(browser)) return;
 
         var then = Date.now();
+		selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["DOUBLECLICK"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout,
