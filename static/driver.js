@@ -892,6 +892,12 @@ module.exports.bindDriver = function(browser) {
 
           // Text areas are not handling the javascript only trigger.
           if (elementInfo.nodeName === "TEXTAREA") {
+			if (selectorType == "XPATH" && !browser.useXpath) {
+			  console.warn(`WARNING: The change input of TEXTAREA with xPath selector has not been supported in this nightwatch version, please use nightwatch > 0.4.0`);
+			}
+			
+			if (selectorType == "XPATH") { browser.useXpath(); }
+			
             browser.clearValue(selector);
             browser.setValue(selector, renderedValue, () => {
 
@@ -904,6 +910,9 @@ module.exports.bindDriver = function(browser) {
 
               if (cb) cb(true);
             });
+			
+			//Switch back to default behaviour of nightwatch
+			if (selectorType == "XPATH") { browser.useCss(); }
           } else {
             browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value) {
     
