@@ -892,6 +892,10 @@ module.exports.bindDriver = function(browser) {
 
           // Text areas are not handling the javascript only trigger.
           if (elementInfo.nodeName === "TEXTAREA") {
+			if (selectorType == "XPATH" && !selector.startsWith('//')) {
+			  console.warn(`WARNING: The advance XPATH starts with different from "//" may not be supported when setting value of TEXTAREA (others are supported well) due to limitation of Selenium Driver, please update to start the XPATH with "//" if you get "invalid selector" error!`);
+			}
+			
             browser.clearValue(selector);
             browser.setValue(selector, renderedValue, () => {
 
