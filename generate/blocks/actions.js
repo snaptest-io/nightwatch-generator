@@ -268,11 +268,15 @@ const actions = {
   },
   "ELSE": {
     render: (action, selector, value, meta) => {
+
+      if (!_.isArray(action.then) || action.then.length === 0) return [];
+
       return [
         [0, "browser.else((b) => { b"],
         ...generateLineArrayFromBlock(action.then, meta, 1),
         [0, "})"]
       ]
+
     }
   },
   "COMPONENT": {
@@ -310,6 +314,8 @@ const actions = {
 const generateLineArrayFromBlock = (block, testData, indent) => {
 
   var lineArray = [];
+
+  if (typeof block === "undefined") return lineArray;
 
   block.forEach((action) => {
 
