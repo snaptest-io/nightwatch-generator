@@ -890,22 +890,35 @@ module.exports.bindDriver = function(browser) {
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then),
           (elementInfo) => {
 
-          // Text areas are not handling the javascript only trigger.
-          if (elementInfo.nodeName === "TEXTAREA") {
-            browser.clearValue(selector);
-            browser.setValue(selector, renderedValue, () => {
+            // Text areas are not handling the javascript only trigger.
+            if (elementInfo.nodeName === "TEXTAREA") {
 
-              onActionSuccess({
-                description,
-                techDescription,
-                actionType,
-                duration: Date.now() - then
+              if (selectorType == "XPATH" && !browser.useXpath) {
+                console.warn(`WARNING: The change input of TEXTAREA with xPath selector has not been supported in this nightwatch version, please use nightwatch > 0.4.0`);
+              }
+
+              if (selectorType == "XPATH") { browser.useXpath(); }
+
+              browser.clearValue(selector);
+              browser.setValue(selector, renderedValue, () => {
+
+                onActionSuccess({
+                  description,
+                  techDescription,
+                  actionType,
+                  duration: Date.now() - then
+                });
+
+                if (cb) cb(true);
+
               });
 
-              if (cb) cb(true);
-            });
-          } else {
-            browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value) {
+              //Switch back to default behaviour of nightwatch
+              if (selectorType == "XPATH") { browser.useCss(); }
+
+            } else {
+
+              browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value) {
     
               ${snptGetElement}
     
@@ -941,23 +954,23 @@ module.exports.bindDriver = function(browser) {
     
             }`), [selector, selectorType, renderedValue], function (result) {
 
-              if (result.value && result.value.criticalError) return onCriticalDriverError({
-                error: result.value.criticalError,
-                techDescription
+                if (result.value && result.value.criticalError) return onCriticalDriverError({
+                  error: result.value.criticalError,
+                  techDescription
+                });
+
+                onActionSuccess({
+                  description,
+                  techDescription,
+                  actionType,
+                  duration: Date.now() - then
+                });
+
+                if (cb) cb(true);
+
               });
-
-              onActionSuccess({
-                description,
-                techDescription,
-                actionType,
-                duration: Date.now() - then
-              });
-
-              if (cb) cb(true);
-
-            });
-          }
-        });
+            }
+          });
 
       });
 
