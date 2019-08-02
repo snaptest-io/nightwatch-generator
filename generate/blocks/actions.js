@@ -56,7 +56,7 @@ const actions = {
   },
   "STYLE_ASSERT": {
     render: (action, selector, value, meta) =>
-      `.elStyleIs(${buildActionParams(action, {value, selector, selectorType: action.selectorType})})`
+      `.elStyleIs(${buildActionParams(action, {style: action.style, value, selector, selectorType: action.selectorType})})`
   },
   "MOUSEDOWN": {
     render: (action, selector, value, meta) =>
