@@ -277,7 +277,7 @@ module.exports = (actions) => {
 
       if (currentAction.indent === firstAction.indent) {
 
-        // If first action... (will always be a type: "DOWHILE")
+        // If first action... (will always be a type: "WHILE")
         if (currentAction.id === firstAction.id && nextAction.indent === currentAction.indent + 1) {
 
           var then = buildBlock(currentIdx + 1);
@@ -315,6 +315,11 @@ module.exports = (actions) => {
             block
           }
 
+        } else {
+          return {
+            lastProcessedIdx: currentIdx - 1,
+            block
+          }
         }
 
       } else {
