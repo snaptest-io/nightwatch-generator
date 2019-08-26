@@ -1,4 +1,5 @@
 const Actions = require('./actiondata').ActionsByConstant;
+const Variables = require('./variables.js');
 const TIMEOUT = 5000;
 
 module.exports.bindDriver = function(browser) {
@@ -765,6 +766,7 @@ module.exports.bindDriver = function(browser) {
         if (blockCancelled(browser)) return;
 
         var then = Date.now();
+		selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["MOUSEDOWN"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout,
@@ -825,6 +827,7 @@ module.exports.bindDriver = function(browser) {
         if (blockCancelled(browser)) return;
 
         var then = Date.now();
+		selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["DOUBLECLICK"].name} ... using "${selector}" (${selectorType})`;
 
         browser._elementPresent(selector, selectorType, null, timeout,
@@ -1745,16 +1748,41 @@ module.exports.bindDriver = function(browser) {
       checkForDomComplete();
 
       return browser;
-    }
+    },
 
   };
+
+  /* Component helper */
+
+  browser.component = (name, instanceVars) => {
+    browser.perform(() => {
+
+      Object.keys(instanceVars).map(function(key) {
+        instanceVars[key] = renderWithVars(instanceVars[key], getVars(browser))
+      });
+
+      // get defaults
+      var component = browser.components[name];
+      var defaultsVars = component.defaults;
+      var compVars = Variables.CompVars(browser.vars, defaultsVars, instanceVars)
+
+      // call the component, pushing the new var context onto a stack.
+      browser.compVarStack.push(compVars);
+
+      component.actions();
+
+    });
+
+    return browser;
+
+  };
+
 
   /* ***************************************************************************************
 
     Register actions & corresponding conditional thunks on the browser object for easy access.
 
   **************************************************************************************** */
-
 
   browser.if = {};
   browser.elseif = {};
