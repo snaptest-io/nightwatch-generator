@@ -1,7 +1,6 @@
 const Actions = require('./actiondata').ActionsByConstant;
+const Variables = require('./variables.js');
 const TIMEOUT = 5000;
-
-var Variables = require('./variables.js');
 
 module.exports.bindDriver = function(browser) {
 
@@ -1750,36 +1749,40 @@ module.exports.bindDriver = function(browser) {
 
       return browser;
     },
-	
-	"component": (name, instanceVars) => {
-  	  browser.perform(() => {
-		Object.keys(instanceVars).map(function(key) {
-			instanceVars[key] = renderWithVars(instanceVars[key], getVars(browser))
-		});
-	  
-  	    // get defaults
-  	    var component = browser.components[name];
-  	    var defaultsVars = component.defaults;
-  	    var compVars = Variables.CompVars(browser.vars, defaultsVars, instanceVars)
-      
-  	    // call the component, pushing the new var context onto a stack.
-  	    browser.compVarStack.push(compVars);
-      
-  	    component.actions();
-      
-  	  })
-      
-  	  return browser;
-  
-    }
+
   };
+
+  /* Component helper */
+
+  browser.component = (name, instanceVars) => {
+    browser.perform(() => {
+
+      Object.keys(instanceVars).map(function(key) {
+        instanceVars[key] = renderWithVars(instanceVars[key], getVars(browser))
+      });
+
+      // get defaults
+      var component = browser.components[name];
+      var defaultsVars = component.defaults;
+      var compVars = Variables.CompVars(browser.vars, defaultsVars, instanceVars)
+
+      // call the component, pushing the new var context onto a stack.
+      browser.compVarStack.push(compVars);
+
+      component.actions();
+
+    });
+
+    return browser;
+
+  };
+
 
   /* ***************************************************************************************
 
     Register actions & corresponding conditional thunks on the browser object for easy access.
 
   **************************************************************************************** */
-
 
   browser.if = {};
   browser.elseif = {};
