@@ -27,6 +27,14 @@ const actions = {
     render: (action, selector, value, meta) =>
       `.elementNotPresent(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
+  "EL_VISIBLE_ASSERT": {
+    render: (action, selector, value, meta) =>
+      `.elementVisible(${buildActionParams(action, {selector, selectorType: action.selectorType, options: action.options})})`
+  },
+  "EL_NOT_VISIBLE_ASSERT": {
+    render: (action, selector, value, meta) =>
+      `.elementNotVisible(${buildActionParams(action, {selector, selectorType: action.selectorType, options: action.options})})`
+  },
   "TEXT_ASSERT": {
     render: (action, selector, value, meta) => {
       if (action.regex) {
