@@ -416,8 +416,15 @@ module.exports.bindDriver = function(browser) {
         optional = false,
         timeout,
         actionType = "EL_VISIBLE_ASSERT",
-        options
       } = args;
+
+      var options = {
+        checkDisplay: args.checkDisplay,
+        checkVisibility: args.checkVisibility,
+        checkOpacity: args.checkOpacity,
+        checkDimensions: args.checkDimensions,
+        checkCenterPoint: args.checkCenterPoint,
+      };
 
       browser.perform(() => {
 
@@ -426,7 +433,7 @@ module.exports.bindDriver = function(browser) {
         var then = Date.now();
         var description = renderWithVars(description, getVars(browser));
         selector = renderWithVars(selector, getVars(browser));
-        var techDescription = `${Actions["EL_PRESENT_ASSERT"].name} ... using ${selector} (${selectorType})`;
+        var techDescription = `${Actions["EL_VISIBLE_ASSERT"].name} ... using ${selector} (${selectorType})`;
 
         browser._elementVisible(selector, selectorType, options, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then),
@@ -450,6 +457,14 @@ module.exports.bindDriver = function(browser) {
 
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "EL_PRESENT_ASSERT" } = args;
 
+      var options = {
+        checkDisplay: args.checkDisplay,
+        checkVisibility: args.checkVisibility,
+        checkOpacity: args.checkOpacity,
+        checkDimensions: args.checkDimensions,
+        checkCenterPoint: args.checkCenterPoint
+      };
+
       browser.perform(() => {
 
         if (blockCancelled(browser)) return;
@@ -457,9 +472,9 @@ module.exports.bindDriver = function(browser) {
         var then = Date.now();
         var description = renderWithVars(description, getVars(browser));
         selector = renderWithVars(selector, getVars(browser));
-        var techDescription = `${Actions["EL_PRESENT_ASSERT"].name} ... using ${selector} (${selectorType})`;
+        var techDescription = `${Actions["EL_NOT_VISIBLE_ASSERT"].name} ... using ${selector} (${selectorType})`;
 
-        browser._elementNotVisible(selector, selectorType, null, timeout,
+        browser._elementNotVisible(selector, selectorType, options, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then),
           () => {
             onActionSuccess({
