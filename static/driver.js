@@ -1957,7 +1957,7 @@ module.exports.bindDriver = function(browser) {
             if (!result.value && currentAttempt < attempts) {
               currentAttempt++;
               browser.pause(POLLING_RATE);
-              checkForDomComplete(url);
+              checkForDomComplete();
             } else if (!result.value) {
               cb(false);
             } else {
