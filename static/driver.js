@@ -436,7 +436,16 @@ module.exports.bindDriver = function(browser) {
         var techDescription = `${Actions["EL_VISIBLE_ASSERT"].name} ... using ${selector} (${selectorType})`;
 
         browser._elementVisible(selector, selectorType, options, null, timeout,
-          () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then),
+          () => {
+            onActionFailed({
+              optional,
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then,
+              error: `Expected element to be visible.`
+            });
+          },
           () => {
             onActionSuccess({
               description,
@@ -475,7 +484,16 @@ module.exports.bindDriver = function(browser) {
         var techDescription = `${Actions["EL_NOT_VISIBLE_ASSERT"].name} ... using ${selector} (${selectorType})`;
 
         browser._elementNotVisible(selector, selectorType, options, null, timeout,
-          () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then),
+          () => {
+            onActionFailed({
+              optional,
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then,
+              error: `Expected element to not be visible, but stayed visible for ${Date.now() - then}ms.`
+            });
+          },
           () => {
             onActionSuccess({
               description,
