@@ -387,6 +387,129 @@ module.exports.bindDriver = function(browser) {
 
     },
 
+    "elementNotPresent": (args) => {
+      // TODO: refactor to use selector strategies
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "EL_NOT_PRESENT_ASSERT" } = args;
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        selector = renderWithVars(selector, getVars(browser));
+        var techDescription = `${Actions["EL_NOT_PRESENT_ASSERT"].name} ... using "${selector}" (${selectorType})`;
+        browser.waitForElementNotPresent(selector, timeout || TIMEOUT);
+        if (cb) cb(true);
+
+      });
+
+      return browser;
+    },
+
+    "elementVisible": (args) => {
+
+      var {
+        selector,
+        selectorType = "CSS",
+        description,
+        cb,
+        optional = false,
+        timeout,
+        actionType = "EL_VISIBLE_ASSERT",
+      } = args;
+
+      var options = {
+        checkDisplay: args.checkDisplay,
+        checkVisibility: args.checkVisibility,
+        checkOpacity: args.checkOpacity,
+        checkDimensions: args.checkDimensions,
+        checkCenterPoint: args.checkCenterPoint,
+      };
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        var description = renderWithVars(description, getVars(browser));
+        selector = renderWithVars(selector, getVars(browser));
+        var techDescription = `${Actions["EL_VISIBLE_ASSERT"].name} ... using ${selector} (${selectorType})`;
+
+        browser._elementVisible(selector, selectorType, options, null, timeout,
+          () => {
+            onActionFailed({
+              optional,
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then,
+              error: `Expected element to be visible.`
+            });
+          },
+          () => {
+            onActionSuccess({
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then
+            });
+            if (cb) cb(true);
+          });
+
+      });
+
+      return browser;
+
+    },
+
+    "elementNotVisible": (args) => {
+
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "EL_PRESENT_ASSERT" } = args;
+
+      var options = {
+        checkDisplay: args.checkDisplay,
+        checkVisibility: args.checkVisibility,
+        checkOpacity: args.checkOpacity,
+        checkDimensions: args.checkDimensions,
+        checkCenterPoint: args.checkCenterPoint
+      };
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        var description = renderWithVars(description, getVars(browser));
+        selector = renderWithVars(selector, getVars(browser));
+        var techDescription = `${Actions["EL_NOT_VISIBLE_ASSERT"].name} ... using ${selector} (${selectorType})`;
+
+        browser._elementNotVisible(selector, selectorType, options, null, timeout,
+          () => {
+            onActionFailed({
+              optional,
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then,
+              error: `Expected element to not be visible, but stayed visible for ${Date.now() - then}ms.`
+            });
+          },
+          () => {
+            onActionSuccess({
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then
+            });
+            if (cb) cb(true);
+          });
+
+      });
+
+      return browser;
+
+    },
+
     "refresh": (args) => {
 
       var { description, cb, optional = false, timeout, actionType = "REFRESH" } = args;
@@ -1133,25 +1256,6 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "elementNotPresent": (args) => {
-      // TODO: refactor to use selector strategies
-      var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "EL_NOT_PRESENT_ASSERT" } = args;
-
-      browser.perform(() => {
-
-        if (blockCancelled(browser)) return;
-
-        var then = Date.now();
-        selector = renderWithVars(selector, getVars(browser));
-        var techDescription = `${Actions["EL_NOT_PRESENT_ASSERT"].name} ... using "${selector}" (${selectorType})`;
-        browser.waitForElementNotPresent(selector, timeout || TIMEOUT);
-        if (cb) cb(true);
-
-      });
-
-      return browser;
-    },
-
     "focusOnEl": (args) => {
 
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "FOCUS" } = args;
@@ -1694,7 +1798,6 @@ module.exports.bindDriver = function(browser) {
                 return { success: false }  
               }
               
-              return !!snptGetElement(selector, selectorType);
             } catch (e) {
               return { criticalError: e.toString() }
             }
@@ -1721,6 +1824,125 @@ module.exports.bindDriver = function(browser) {
 
     },
 
+    "_elementVisible": (selector, selectorType = "CSS", options, description, timeout, onFail = noop, onSuccess = noop) => {
+
+      var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
+      var currentAttempt = 0;
+
+      function recursiveCheckforElVisible(selector) {
+        browser._checkForElementVisible(selector, selectorType, options, function(result) {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+
+          if (!result.value.success && currentAttempt < attempts) {
+            currentAttempt++;
+            browser.pause(POLLING_RATE);
+            recursiveCheckforElVisible(selector);
+          } else if (!result.value.success) {
+            onFail();
+          } else {
+            onSuccess(result.value.elementInfo);
+          }
+
+        });
+      }
+
+      recursiveCheckforElVisible(selector);
+
+      return browser;
+
+    },
+
+    "_elementNotVisible": (selector, selectorType = "CSS", options, description, timeout, onFail = noop, onSuccess = noop) => {
+
+      var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
+      var currentAttempt = 0;
+
+      function recursiveCheckforElVisible(selector) {
+        browser._checkForElementVisible(selector, selectorType, options, function(result) {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+
+          if (!result.value.success) {
+            onSuccess();
+          } else if (currentAttempt < attempts) {
+            currentAttempt++;
+            browser.pause(POLLING_RATE);
+            recursiveCheckforElVisible(selector);
+          } else {
+            onFail();
+          }
+
+        });
+      }
+
+      recursiveCheckforElVisible(selector);
+
+      return browser;
+
+    },
+
+    _checkForElementVisible: (selector, selectorType, options, cb) => {
+      browser.execute(
+        prepStringFuncForExecute(`function(selector, selectorType, options) {
+          ${snptGetElement}
+          try {
+          
+            var elem = snptGetElement(selector, selectorType); 
+            
+            if (elem) {
+
+              function isVisible(elem) {
+          
+                var style = getComputedStyle(elem);
+          
+                if (options.checkDisplay && style.display === 'none') return false;
+                if (options.checkVisibility && style.visibility !== 'visible') return false;
+                if (options.checkOpacity && style.opacity < 0.1) return false;
+          
+                if (options.checkDimensions) {
+                  if (elem.offsetWidth + elem.offsetHeight + elem.getBoundingClientRect().height +
+                    elem.getBoundingClientRect().width === 0) {
+                    return false;
+                  }
+                }
+          
+                if (options.checkCenterPoint) {
+                  const elemCenter = {
+                    x: elem.getBoundingClientRect().left + elem.offsetWidth / 2,
+                    y: elem.getBoundingClientRect().top + elem.offsetHeight / 2
+                  };
+                  if (elemCenter.x < 0) return false;
+                  if (elemCenter.x > (document.documentElement.clientWidth || window.innerWidth)) return false;
+                  if (elemCenter.y < 0) return false;
+                  if (elemCenter.y > (document.documentElement.clientHeight || window.innerHeight)) return false;
+          
+                  let pointContainer = document.elementFromPoint(elemCenter.x, elemCenter.y);
+          
+                  do {
+                    if (pointContainer === elem) return true;
+                  } while (pointContainer = pointContainer.parentNode);
+                  return false;
+                }
+          
+                return true;
+          
+              }
+          
+              return {
+                success: isVisible(elem)
+              }
+              
+            }
+            
+            return false;
+            
+          } catch (e) {
+            return { criticalError: e.toString() }
+          }
+        }`), [selector, selectorType, options], cb);
+    },
+
     "_pollUntilDOMComplete": (timeout, cb) => {
 
       var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
@@ -1735,7 +1957,7 @@ module.exports.bindDriver = function(browser) {
             if (!result.value && currentAttempt < attempts) {
               currentAttempt++;
               browser.pause(POLLING_RATE);
-              checkForDomComplete(url);
+              checkForDomComplete();
             } else if (!result.value) {
               cb(false);
             } else {

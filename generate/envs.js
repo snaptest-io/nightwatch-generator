@@ -1,5 +1,7 @@
 module.exports.generateJsonFile = function(testData, fileStructure, rootPath) {
 
+  if (!testData.envs) return;
+
   var envs = testData.envs.map((env) => ({
     name: env.name,
     id: env.id,

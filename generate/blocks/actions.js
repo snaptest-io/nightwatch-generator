@@ -27,6 +27,30 @@ const actions = {
     render: (action, selector, value, meta) =>
       `.elementNotPresent(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
+  "EL_VISIBLE_ASSERT": {
+    render: (action, selector, value, meta) =>
+      `.elementVisible(${buildActionParams(action, {
+        selector, selectorType: 
+        action.selectorType,
+        checkDisplay: action.checkDisplay,
+        checkVisibility: action.checkVisibility,
+        checkOpacity: action.checkOpacity,
+        checkDimensions: action.checkDimensions,
+        checkCenterPoint: action.checkCenterPoint
+      })})`
+  },
+  "EL_NOT_VISIBLE_ASSERT": {
+    render: (action, selector, value, meta) =>
+      `.elementNotVisible(${buildActionParams(action, {
+        selector, 
+        selectorType: action.selectorType, 
+        checkDisplay: action.checkDisplay,
+        checkVisibility: action.checkVisibility,
+        checkOpacity: action.checkOpacity,
+        checkDimensions: action.checkDimensions,
+        checkCenterPoint: action.checkCenterPoint
+      })})`
+  },
   "TEXT_ASSERT": {
     render: (action, selector, value, meta) => {
       if (action.regex) {
