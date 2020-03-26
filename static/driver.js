@@ -2121,6 +2121,8 @@ module.exports.bindDriver = function(browser) {
 
   browser.while = function(doWhile, doBlock) {
 
+    if (!doWhile) return browser;
+
     browser.perform(() => {
 
       browser.loopStack.push({break: false});
