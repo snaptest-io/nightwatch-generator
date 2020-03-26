@@ -252,6 +252,8 @@ const actions = {
       var conditionSelector = prepForArgString(action.condition.selector || "");
       var conditionValue = _.isString(action.condition.value) ? prepForArgString(action.condition.value) : action.condition.value;
 
+      if (action.condition.type === "BLANK") return [];
+
       if (action.then && action.then.length === 0) {
         return [
           [0, `browser.if${actions[action.condition.type].render(action.condition, conditionSelector, conditionValue, meta)}, `],
@@ -273,6 +275,8 @@ const actions = {
 
       var conditionSelector = prepForArgString(action.condition.selector || "");
       var conditionValue = _.isString(action.condition.value) ? prepForArgString(action.condition.value) : action.condition.value;
+
+      if (action.condition.type === "BLANK") return [];
 
       if (action.then && action.then.length === 0) {
         return [
