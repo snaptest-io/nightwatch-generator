@@ -636,11 +636,10 @@ module.exports.bindDriver = function(browser) {
         function checkForPageLoadWithPathname(pathname) {
           browser.execute(prepStringFuncForExecute(`function() {
             return {
-              pathname: window.location.pathname,
-              readyState: document.readyState
+              pathname: window.location.pathname
             };
           }`), [], function(result) {
-            if (result.value.readyState === "complete" && (pathname instanceof RegExp ? pathname.test(result.value.pathname) : result.value.pathname === pathname)) {
+            if (pathname instanceof RegExp ? pathname.test(result.value.pathname) : result.value.pathname === pathname) {
 
               onActionSuccess({
                 description,
