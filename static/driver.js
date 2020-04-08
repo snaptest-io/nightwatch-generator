@@ -1804,7 +1804,7 @@ module.exports.bindDriver = function(browser) {
 
             if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
-            if (!result.value.success && currentAttempt < attempts) {
+            if (!result.value || (!result.value.success && currentAttempt < attempts)) {
               currentAttempt++;
               browser.pause(POLLING_RATE);
               checkforEl(selector);

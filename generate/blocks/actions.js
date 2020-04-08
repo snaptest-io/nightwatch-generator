@@ -6,7 +6,7 @@ const actions = {
       `.loadPage(${buildActionParams(action, {
         url: value,
         width: `${action.width}`,
-        height: `${action.width}`,
+        height: `${action.height}`,
         ...action.complete && { complete: true },
         ...action.resize && { resize: true }
       })})`
