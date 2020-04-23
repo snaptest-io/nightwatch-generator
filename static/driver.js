@@ -1397,6 +1397,143 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
+    "scrollWindowToEl": (args) => {
+
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "SCROLL_WINDOW_ELEMENT" } = args;
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        selector = renderWithVars(selector, getVars(browser));
+        var techDescription = `${Actions["SCROLL_WINDOW_ELEMENT"].name} ... using "${selector}" (${selectorType})`;
+
+        browser._elementPresent(selector, selectorType, null, timeout,
+          () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
+
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+    
+          ${snptGetElement}
+
+          try {          
+            var el = snptGetElement(selector, selectorType);
+            if (!el) return;
+            var elsScrollY = el.getBoundingClientRect().top + window.scrollY - el.offsetHeight;
+            window.scrollTo(0,  elsScrollY);
+          } catch (e) {
+            return { criticalError: e.toString() }
+          }
+          
+    
+        }`), [selector, selectorType], function(result) {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+
+          onActionSuccess({
+            description,
+            techDescription,
+            actionType,
+            duration: Date.now() - then
+          });
+
+          if (cb) cb(true);
+
+        });
+      });
+
+      return browser;
+    },
+
+    "scrollWindowTo": (args) => {
+
+      var { description, cb, optional = false, timeout, actionType = "SCROLL_WINDOW", x, y } = args;
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        var techDescription = `${Actions["SCROLL_WINDOW"].name} (x: ${x}, y: ${y})`;
+
+        browser.execute(prepStringFuncForExecute(`function(x, y) {
+    
+          ${snptGetElement}
+
+          try {          
+            window.scrollTo(x,  y);
+          } catch (e) {
+            return { criticalError: e.toString() }
+          }
+    
+        }`), [x, y], function(result) {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+
+          onActionSuccess({
+            description,
+            techDescription,
+            actionType,
+            duration: Date.now() - then
+          });
+
+          if (cb) cb(true);
+
+        });
+      });
+
+      return browser;
+    },
+
+    "scrollElementTo": (args) => {
+
+      var { selector, selectorType = "CSS", x, y, description, cb, optional = false, timeout, actionType = "SCROLL_ELEMENT" } = args;
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        selector = renderWithVars(selector, getVars(browser));
+        var techDescription = `${Actions["SCROLL_ELEMENT"].name} ... using "${selector}" (${selectorType}) to (x: ${x}, y: ${y})`;
+
+        browser._elementPresent(selector, selectorType, null, timeout,
+          () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
+
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, x, y) {
+    
+          ${snptGetElement}
+
+          try {          
+            var el = snptGetElement(selector, selectorType);
+            if (!el) return;
+            
+            el.scrollLeft = x;
+            el.scrollTop = y;
+            
+          } catch (e) {
+            return { criticalError: e.toString() }
+          }
+    
+        }`), [selector, selectorType, x, y], function(result) {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+
+          onActionSuccess({
+            description,
+            techDescription,
+            actionType,
+            duration: Date.now() - then
+          });
+
+          if (cb) cb(true);
+
+        });
+      });
+
+      return browser;
+    },
+
     "elTextIs": (args) => {
 
       var { selector, selectorType = "CSS", value, regex = false, description, cb, optional = false, timeout, actionType = "TEXT_ASSERT" } = args;
