@@ -107,7 +107,9 @@ module.exports.bindDriver = function(browser) {
       var myRegEx = new RegExp(`\\$\\{${replacer.key}\\}`, "g");
       value = value.replace(myRegEx, replacer.value);
     });
+
     return value;
+
   }
 
   function getVars(browser) {
@@ -802,11 +804,13 @@ module.exports.bindDriver = function(browser) {
         browser._elementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
-        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, x, y) {
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, x, y, variables) {
     
           ${snptGetElement}
+          ${snptEvaluator}
           
           try {
+            selector = snptEvaluator(selector, variables);
             var el = snptGetElement(selector, selectorType);
             if (!el) return;
             el.scrollLeft = x;
@@ -815,7 +819,7 @@ module.exports.bindDriver = function(browser) {
             return { criticalError: e.toString() }
           }
     
-        }`), [selector, selectorType, x, y], (result) => {
+        }`), [selector, selectorType, x, y, browser.vars.getAllObject()], (result) => {
 
           if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
@@ -848,11 +852,13 @@ module.exports.bindDriver = function(browser) {
         browser._elementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
-        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value) {
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value, variables) {
     
           ${snptGetElement}
+          ${snptEvaluator}
     
           try {
+            selector = snptEvaluator(selector, variables);
             var el = snptGetElement(selector, selectorType);
             if (!el) return;
             var elsScrollY = el.getBoundingClientRect().top + window.scrollY - el.offsetHeight;
@@ -861,7 +867,7 @@ module.exports.bindDriver = function(browser) {
             return { criticalError: e.toString() }
           }
           
-        }`), [selector, selectorType], (result) => {
+        }`), [selector, selectorType, browser.vars.getAllObject()], (result) => {
 
           if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
@@ -894,12 +900,14 @@ module.exports.bindDriver = function(browser) {
         browser._elementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
-        browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
   
           ${snptGetElement}
+          ${snptEvaluator}
     
           try {
           
+            selector = snptEvaluator(selector, variables);
             var element = snptGetElement(selector, selectorType);
             
             if (!element) return;
@@ -919,7 +927,7 @@ module.exports.bindDriver = function(browser) {
             return { criticalError: e.toString() }
           }
     
-        }`), [selector, selectorType], function(result) {
+        }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
 
           if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
@@ -955,12 +963,13 @@ module.exports.bindDriver = function(browser) {
         browser._elementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
-        browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
   
           ${snptGetElement}
     
           try {
           
+            selector = snptEvaluator(selector, variables);
             var element = snptGetElement(selector, selectorType);
             
             if (!element) return;
@@ -977,7 +986,7 @@ module.exports.bindDriver = function(browser) {
             return { criticalError: e.toString() }
           }
     
-        }`), [selector, selectorType], function(result) {
+        }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
 
           if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
@@ -1043,11 +1052,15 @@ module.exports.bindDriver = function(browser) {
 
             } else {
 
-              browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value) {
+              browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value, variables) {
     
+              ${snptEvaluator}
               ${snptGetElement}
     
               try {
+    
+                selector = snptEvaluator(selector, variables);
+                value = snptEvaluator(value, variables);
     
                 var el = snptGetElement(selector, selectorType);
                 if (!el) return;
@@ -1077,7 +1090,7 @@ module.exports.bindDriver = function(browser) {
                 return { criticalError: e.toString() }
               }
     
-            }`), [selector, selectorType, renderedValue], function (result) {
+            }`), [selector, selectorType, renderedValue, browser.vars.getAllObject()], function (result) {
 
                 if (result.value && result.value.criticalError) return onCriticalDriverError({
                   error: result.value.criticalError,
@@ -1122,16 +1135,18 @@ module.exports.bindDriver = function(browser) {
         var currentAttempt = 0;
 
         function checkforStyle(selector, selectorType, style, value) {
-          browser.execute(prepStringFuncForExecute(`function(selector, selectorType, style) {
+          browser.execute(prepStringFuncForExecute(`function(selector, selectorType, style, variables) {
             ${snptGetElement}
+            ${snptEvaluator}
             try {
+              selector = snptEvaluator(selector, variables);
               var el = snptGetElement(selector, selectorType);
               if (!el) return;
               return window.getComputedStyle(el, null).getPropertyValue(style);
             } catch(e) {
               return { criticalError: e.toString() }
             }
-          }`), [selector, selectorType, style], function(result) {
+          }`), [selector, selectorType, style, browser.vars.getAllObject()], function(result) {
 
             if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
@@ -1193,12 +1208,13 @@ module.exports.bindDriver = function(browser) {
         var currentAttempt = 0;
 
         function checkforValue(selector, selectorType, value) {
-          browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+          browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
   
             ${snptGetElement}
             
             try {
             
+              selector = snptEvaluator(selector, variables);
               var el = snptGetElement(selector, selectorType);
               if (!el) return;        
           
@@ -1212,7 +1228,7 @@ module.exports.bindDriver = function(browser) {
               return { criticalError: e.toString() }
             }
           }
-          `), [selector, selectorType], function(result) {
+          `), [selector, selectorType, browser.vars.getAllObject()], function(result) {
 
             if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
@@ -1270,12 +1286,13 @@ module.exports.bindDriver = function(browser) {
         browser._elementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
-        browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
     
           ${snptGetElement}
+          ${snptEvaluator}
           
           try {
-          
+            selector = snptEvaluator(selector, variables);
             var el = snptGetElement(selector, selectorType);
             if (!el) return;
          
@@ -1285,7 +1302,7 @@ module.exports.bindDriver = function(browser) {
             return { criticalError: e.toString() }
           }
           
-        }`), [selector, selectorType], function(result) {
+        }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
 
           if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
@@ -1319,11 +1336,13 @@ module.exports.bindDriver = function(browser) {
         browser._elementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
-        browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
   
           ${snptGetElement}
+          ${snptEvaluator}
           
           try {
+            selector = snptEvaluator(selector, variables);
             var el = snptGetElement(selector, selectorType);
             if (!el) return;
             var event = new Event('submit');
@@ -1332,7 +1351,7 @@ module.exports.bindDriver = function(browser) {
             return { criticalError: e.toString() }
           }
     
-        }`), [selector, selectorType], function(result) {
+        }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
           if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
           onActionSuccess({
@@ -1364,11 +1383,13 @@ module.exports.bindDriver = function(browser) {
         browser._elementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
-        browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
     
           ${snptGetElement}
+          ${snptEvaluator}
 
-          try {          
+          try {    
+            selector = snptEvaluator(selector, variables);      
             var el = snptGetElement(selector, selectorType);
             if (!el) return;
             var event = new FocusEvent('blur');
@@ -1378,7 +1399,7 @@ module.exports.bindDriver = function(browser) {
           }
           
     
-        }`), [selector, selectorType], function(result) {
+        }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
 
           if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
@@ -1671,9 +1692,10 @@ module.exports.bindDriver = function(browser) {
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         // check for a successful browser execute.
-        browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+        browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
   
           ${snptGetElement}
+          ${snptEvaluator}
     
           function getValue(el) {
                     
@@ -1705,6 +1727,7 @@ module.exports.bindDriver = function(browser) {
     
           try {
           
+            selector = snptEvaluator(selector, variables);
             var element = snptGetElement(selector, selectorType);
             if (!element) return {success: false};
             
@@ -1715,7 +1738,7 @@ module.exports.bindDriver = function(browser) {
             return { criticalError: e.toString() }
           }
     
-        }`), [selector, selectorType], function(result) {
+        }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
 
           if (result.value && result.value.success) {
 
@@ -1746,12 +1769,13 @@ module.exports.bindDriver = function(browser) {
 
     "_getElText": (selector, selectorType = "CSS", onSuccess = noop) => {
 
-      browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
+      browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
   
         ${snptGetElement}
     
         try {
     
+          selector = snptEvaluator(selector, variables);
           var element = snptGetElement(selector, selectorType)
       
           if (!element) return null;
@@ -1770,7 +1794,7 @@ module.exports.bindDriver = function(browser) {
         }
         
         
-      }`), [selector, selectorType], function(result) {
+      }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
         if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
         onSuccess(result.value);
       });
@@ -1786,9 +1810,13 @@ module.exports.bindDriver = function(browser) {
 
       function checkforEl(selector) {
         browser.execute(
-          prepStringFuncForExecute(`function(selector, selectorType) {
+          prepStringFuncForExecute(`function(selector, selectorType, variables) {
             ${snptGetElement}
+            ${snptEvaluator}
             try {
+              
+              selector = snptEvaluator(selector, variables);
+              
               var el = snptGetElement(selector, selectorType); 
               
               if (el) {
@@ -1800,7 +1828,7 @@ module.exports.bindDriver = function(browser) {
             } catch (e) {
               return { criticalError: e.toString() }
             }
-          }`), [selector, selectorType], function(result) {
+          }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
 
             if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
@@ -1883,10 +1911,12 @@ module.exports.bindDriver = function(browser) {
 
     _checkForElementVisible: (selector, selectorType, options, cb) => {
       browser.execute(
-        prepStringFuncForExecute(`function(selector, selectorType, options) {
+        prepStringFuncForExecute(`function(selector, selectorType, options, variables) {
           ${snptGetElement}
+          ${snptEvaluator}
           try {
           
+            selector = snptEvaluator(selector, variables);
             var elem = snptGetElement(selector, selectorType); 
             
             if (elem) {
@@ -1939,7 +1969,7 @@ module.exports.bindDriver = function(browser) {
           } catch (e) {
             return { criticalError: e.toString() }
           }
-        }`), [selector, selectorType, options], cb);
+        }`), [selector, selectorType, options, browser.vars.getAllObject()], cb);
     },
 
     "_pollUntilDOMComplete": (timeout, cb) => {
