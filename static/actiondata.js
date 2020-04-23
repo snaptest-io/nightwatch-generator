@@ -719,6 +719,72 @@ const Actions = [
     "reportResult": true
   },
   {
+    "name" : "Scroll win to...",
+    "constant" : "SCROLL_WINDOW",
+    "category" : CATEGORIES.SCROLL,
+    "description" :null,
+    "supportedBy" :[
+      "snaptest",
+      "nightwatch"
+    ],
+    "tags": ["scroll", "find"],
+    "params" :[
+      {
+        "name" : "selector",
+        "description" : "Element to be clicked"
+      }, {
+        "name" : "value",
+        "description" : "none"
+      }
+    ],
+    "autodescribe" : "scrolls the window to %x and %y coordinates",
+    "reportResult": true
+  },
+  {
+    "name" : "Scroll win to el",
+    "constant" : "SCROLL_WINDOW_ELEMENT",
+    "category" : CATEGORIES.SCROLL,
+    "description" :null,
+    "supportedBy" :[
+      "snaptest",
+      "nightwatch"
+    ],
+    "tags": ["scroll", "find"],
+    "params" :[
+      {
+        "name" : "selector",
+        "description" : "Element to be clicked"
+      }, {
+        "name" : "value",
+        "description" : "none"
+      }
+    ],
+    "autodescribe" : "scrolls the window to the \"ELEMENT\" element",
+    "reportResult": true
+  },
+  {
+    "name" : "Scroll el to...",
+    "constant" : "SCROLL_ELEMENT",
+    "category" : CATEGORIES.SCROLL,
+    "description" :null,
+    "supportedBy" :[
+      "snaptest",
+      "nightwatch"
+    ],
+    "tags": ["scroll", "find"],
+    "params" :[
+      {
+        "name" : "selector",
+        "description" : "Element to be clicked"
+      }, {
+        "name" : "value",
+        "description" : "none"
+      }
+    ],
+    "autodescribe" : "scrolls the \"ELEMENT\" element to %x and %y coordinates",
+    "reportResult": true
+  },
+  {
     "name" : "Scroll win to",
     "constant" : "SCROLL_WINDOW",
     "category" : CATEGORIES.SCROLL,

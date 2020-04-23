@@ -109,6 +109,18 @@ const actions = {
     render: (action, selector, value, meta) =>
       `.blurOffEl(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
+  "SCROLL_WINDOW": {
+    render: (action, selector, value, meta) =>
+      `.scrollWindowTo(${buildActionParams(action, {x: action.x, y: action.y})})`
+  },
+  "SCROLL_WINDOW_ELEMENT": {
+    render: (action, selector, value, meta) =>
+      `.scrollWindowToEl(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
+  },
+  "SCROLL_ELEMENT": {
+    render: (action, selector, value, meta) =>
+      `.scrollElementTo(${buildActionParams(action, {selector, selectorType: action.selectorType, x: action.x, y: action.y})})`
+  },
   "EXECUTE_SCRIPT": {
     render: (action, selector, value, meta) =>
       `.executeScript(${buildActionParams(action, {value: `${prepForArgString(action.script)}`})})`
