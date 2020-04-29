@@ -637,7 +637,6 @@ module.exports.bindDriver = function(browser) {
 
         function checkForPageLoadWithPathname(pathname) {
 
-
           browser.execute(prepStringFuncForExecute(`function() {
             try {
                return {
