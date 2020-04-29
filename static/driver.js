@@ -636,12 +636,25 @@ module.exports.bindDriver = function(browser) {
         var currentAttempt = 0;
 
         function checkForPageLoadWithPathname(pathname) {
+
+
           browser.execute(prepStringFuncForExecute(`function() {
-            return {
-              pathname: window.location.pathname
+            try {
+               return {
+                pathname: window.location.pathname
+              };
+            } catch(e) {
+              return { criticalError: e.toString() } 
             };
           }`), [], function(result) {
-            if (pathname instanceof RegExp ? pathname.test(result.value.pathname) : result.value.pathname === pathname) {
+
+            if (result.value && result.value.criticalError) {
+              return onCriticalDriverError({error: result.value.criticalError, techDescription});
+            }
+            else if (
+              result.value &&
+              ( pathname instanceof RegExp ? pathname.test(result.value.pathname) : result.value.pathname === pathname )
+            ) {
 
               onActionSuccess({
                 description,
