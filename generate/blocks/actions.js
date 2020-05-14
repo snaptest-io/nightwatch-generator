@@ -127,15 +127,15 @@ const actions = {
   },
   "REFRESH": {
     render: (action, selector, value, meta) =>
-      `.refresh(${buildActionParams(action, {})})`
+      `.pageRefresh(${buildActionParams(action, {})})`
   },
   "BACK": {
     render: (action, selector, value, meta) =>
-      `.back(${buildActionParams(action, {})})`
+      `.pageBack(${buildActionParams(action, {})})`
   },
   "FORWARD": {
     render: (action, selector, value, meta) =>
-      `.forward(${buildActionParams(action, {})})`
+      `.pageForward(${buildActionParams(action, {})})`
   },
   "DIALOG": {
     render: (action, selector, value, meta) =>
