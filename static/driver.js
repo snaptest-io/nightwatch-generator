@@ -4,10 +4,6 @@ const TIMEOUT = 5000;
 
 module.exports.bindDriver = function(browser) {
 
-  var oldBack = browser.back;
-  var oldForward = browser.forward;
-  var oldRefresh = browser.refresh;
-
   var POLLING_RATE = 300;
 
   var snptEvaluator =
@@ -268,7 +264,7 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "back": (args) => {
+    "pageBack": (args) => {
 
       const { description, cb, actionType = "BACK" } = args;
 
@@ -281,7 +277,7 @@ module.exports.bindDriver = function(browser) {
         var techDescription = `${Actions["BACK"].name}`;
 
         browser.pause(5);
-        oldBack();
+        browser.back();
 
         onActionSuccess({
           description,
@@ -512,7 +508,7 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "refresh": (args) => {
+    "pageRefresh": (args) => {
 
       var { description, cb, optional = false, timeout, actionType = "REFRESH" } = args;
 
@@ -524,7 +520,7 @@ module.exports.bindDriver = function(browser) {
         var description = renderWithVars(description, getVars(browser));
         var techDescription = `${Actions["REFRESH"].name}`;
 
-        oldRefresh();
+        browser.refresh();
 
         onActionSuccess({
           description,
@@ -540,7 +536,7 @@ module.exports.bindDriver = function(browser) {
       return browser;
     },
 
-    "forward": (args) => {
+    "pageForward": (args) => {
 
       var { description, cb, optional = false, timeout, actionType = "FORWARD" } = args;
 
@@ -552,7 +548,7 @@ module.exports.bindDriver = function(browser) {
         var description = renderWithVars(description, getVars(browser));
         var techDescription = `${Actions["FORWARD"].name}`;
 
-        oldForward();
+        browser.forward();
 
         onActionSuccess({
           description,
