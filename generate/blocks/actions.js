@@ -95,11 +95,16 @@ const actions = {
       `.formSubmit(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
   "CLEAR_COOKIES": {
-    render: (action, selector, value, meta) => `.deleteCookies()`
+    render: (action, selector, value, meta) =>
+      `.clearCookies(${buildActionParams(action, { cookieDomain: value })})`
   },
   "CLEAR_CACHES": {
     render: (action, selector, value, meta) =>
-      `.clearCaches(${buildActionParams(action, {localstorage: action.localstorage, sessionstorage: action.sessionstorage })})`
+      `.clearCaches(${buildActionParams(action, {
+        cookieDomain: prepForArgString(action.cookieDomain), 
+        localstorage: action.localstorage, 
+        sessionstorage: action.sessionstorage 
+      })})`
   },
   "FOCUS": {
     render: (action, selector, value, meta) =>

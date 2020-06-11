@@ -564,9 +564,9 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "clearCaches": (args) => {
+    "clearCookies": (args) => {
 
-      var { localstorage, sessionstorage, description, cb, optional = false, timeout, actionType = "CLEAR_CACHES" } = args;
+      var { cookieDomain, description, cb, actionType = "BACK" } = args;
 
       browser.perform(() => {
 
@@ -574,11 +574,88 @@ module.exports.bindDriver = function(browser) {
 
         var then = Date.now();
         var description = renderWithVars(description, getVars(browser));
+        var domain = renderWithVars(cookieDomain, getVars(browser));
+        var techDescription = `${Actions["CLEAR_COOKIES"].name}`;
+
+        browser._clearCookies(domain, () => {
+          onActionSuccess({
+            description,
+            techDescription,
+            actionType,
+            duration: Date.now() - then
+          });
+
+          if (cb) cb(true);
+        })
+
+      });
+
+      return browser;
+
+    },
+
+    "_clearCookies": (domain, cb) => {
+
+      // check whether we're already on the domain to clear.  If not, open a new window.
+      browser
+        .execute(function (clearDomain, windowName) {
+          try {
+
+            var clearDomainInfo = new URL(clearDomain)
+            var thisDomainInfo = new URL(window.location.href)
+
+            if (thisDomainInfo.host !== clearDomainInfo.host) {
+              window.open(clearDomain, windowName, "height=10,width=10");
+              return { domainMismatch: true }
+            } else {
+              return { domainMismatch: false }
+            }
+
+          } catch(e) {
+            return { criticalError: e.toString() }
+          }
+
+        }, [domain, "delete_cookies"], (result) => {
+
+          if (result.value && result.value.criticalError)
+            return onCriticalDriverError({ error: result.value.criticalError, techDescription: "_clearCookies" });
+
+          if (result.value.domainMismatch) {
+
+            browser.switchWindow("delete_cookies");
+            browser.deleteCookies();
+
+            browser.windowHandles(function(result) {
+              browser.closeWindow();
+              browser.switchWindow(result.value[0]);
+            });
+
+          } else {
+            browser.deleteCookies();
+          }
+
+          cb();
+
+        });
+
+    },
+
+    "clearCaches": (args) => {
+
+      var { cookieDomain, localstorage, sessionstorage, description, cb, optional = false, timeout, actionType = "CLEAR_CACHES" } = args;
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        var description = renderWithVars(description, getVars(browser));
+        var domain = renderWithVars(cookieDomain, getVars(browser));
         var techDescription = `${Actions["CLEAR_CACHES"].name}`;
 
-        browser.deleteCookies();
+        browser._clearCookies(domain, () => {
 
-        browser.execute(prepStringFuncForExecute(`function(localstorage, sessionstorage) {
+          browser.execute(prepStringFuncForExecute(`function(localstorage, sessionstorage) {
           try {
           
             if (localstorage && window.localStorage) {
@@ -595,17 +672,18 @@ module.exports.bindDriver = function(browser) {
           
         }`), [localstorage, sessionstorage], (result) => {
 
-          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+            if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
 
-          onActionSuccess({
-            description,
-            techDescription,
-            actionType,
-            duration: Date.now() - then
+            onActionSuccess({
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then
+            });
+
+            if (cb) cb(true);
+
           });
-
-          if (cb) cb(true);
-
         });
 
       });
