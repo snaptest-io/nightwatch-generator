@@ -1,6 +1,6 @@
 {
   "name": "nightwatch-generator",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "SnapTest's Nightwatch generator",
   "main": "index.js",
   "scripts": {
