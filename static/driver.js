@@ -2018,7 +2018,11 @@ module.exports.bindDriver = function(browser) {
         
         
       }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
-        if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+        if (result.value && result.value.criticalError)
+          return onCriticalDriverError({
+            error: result.value.criticalError,
+            techDescription: `Finding element text using ${selector} (${selectorType})`
+          });
         onSuccess(result.value);
       });
 
@@ -2053,7 +2057,11 @@ module.exports.bindDriver = function(browser) {
             }
           }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
 
-            if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+            if (result.value && result.value.criticalError)
+              return onCriticalDriverError({
+                error: result.value.criticalError,
+                techDescription: `Finding element using ${selector} (${selectorType})`
+              });
 
             if (!result.value || (!result.value.success && currentAttempt < attempts)) {
               currentAttempt++;
@@ -2082,7 +2090,11 @@ module.exports.bindDriver = function(browser) {
       function recursiveCheckforElVisible(selector) {
         browser._checkForElementVisible(selector, selectorType, options, function(result) {
 
-          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+          if (result.value && result.value.criticalError)
+            return onCriticalDriverError({
+              error: result.value.criticalError,
+              techDescription: `Checking element is visible using ${selector} (${selectorType})`
+            });
 
           if (!result.value.success && currentAttempt < attempts) {
             currentAttempt++;
@@ -2111,7 +2123,10 @@ module.exports.bindDriver = function(browser) {
       function recursiveCheckforElVisible(selector) {
         browser._checkForElementVisible(selector, selectorType, options, function(result) {
 
-          if (result.value && result.value.criticalError) return onCriticalDriverError({error: result.value.criticalError, techDescription});
+          if (result.value && result.value.criticalError) return onCriticalDriverError({
+            error: result.value.criticalError,
+            techDescription: `Checking element is not visible using ${selector} (${selectorType})`
+          });
 
           if (!result.value.success) {
             onSuccess();
