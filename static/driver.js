@@ -367,7 +367,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["EL_PRESENT_ASSERT"].name} ... using ${selector} (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then),
           () => {
             onActionSuccess({
@@ -386,7 +386,7 @@ module.exports.bindDriver = function(browser) {
     },
 
     "elementNotPresent": (args) => {
-      // TODO: refactor to use selector strategies
+
       var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "EL_NOT_PRESENT_ASSERT" } = args;
 
       browser.perform(() => {
@@ -394,14 +394,36 @@ module.exports.bindDriver = function(browser) {
         if (blockCancelled(browser)) return;
 
         var then = Date.now();
+        var description = renderWithVars(description, getVars(browser));
         selector = renderWithVars(selector, getVars(browser));
-        var techDescription = `${Actions["EL_NOT_PRESENT_ASSERT"].name} ... using "${selector}" (${selectorType})`;
-        browser.waitForElementNotPresent(selector, timeout || TIMEOUT);
-        if (cb) cb(true);
+        var techDescription = `${Actions["EL_NOT_PRESENT_ASSERT"].name} ... using ${selector} (${selectorType})`;
+
+        browser._waitElementNotPresent(selector, selectorType, null, timeout,
+          () => {
+            onActionFailed({
+              optional,
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then,
+              error: `Expected element to not be present, but stayed present for ${Date.now() - then}ms.`
+            });
+            console.log("WEIID");
+          },
+          () => {
+            onActionSuccess({
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then
+            });
+            if (cb) cb(true);
+          });
 
       });
 
       return browser;
+
     },
 
     "elementVisible": (args) => {
@@ -433,7 +455,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["EL_VISIBLE_ASSERT"].name} ... using ${selector} (${selectorType})`;
 
-        browser._elementVisible(selector, selectorType, options, null, timeout,
+        browser._waitElementVisible(selector, selectorType, options, null, timeout,
           () => {
             onActionFailed({
               optional,
@@ -481,7 +503,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["EL_NOT_VISIBLE_ASSERT"].name} ... using ${selector} (${selectorType})`;
 
-        browser._elementNotVisible(selector, selectorType, options, null, timeout,
+        browser._waitElementNotVisible(selector, selectorType, options, null, timeout,
           () => {
             onActionFailed({
               optional,
@@ -887,7 +909,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SCROLL_ELEMENT"].name} ... using ${selector} (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, x, y, variables) {
@@ -935,7 +957,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SCROLL_WINDOW_ELEMENT"].name} ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, value, variables) {
@@ -980,10 +1002,10 @@ module.exports.bindDriver = function(browser) {
         if (blockCancelled(browser)) return;
 
         var then = Date.now();
-		selector = renderWithVars(selector, getVars(browser));
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["MOUSEDOWN"].name} ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
@@ -1043,10 +1065,10 @@ module.exports.bindDriver = function(browser) {
         if (blockCancelled(browser)) return;
 
         var then = Date.now();
-		selector = renderWithVars(selector, getVars(browser));
+        selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["DOUBLECLICK"].name} ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
@@ -1106,7 +1128,7 @@ module.exports.bindDriver = function(browser) {
         var renderedValue = renderWithVars(value, getVars(browser));
         var techDescription = `${Actions["INPUT"].name} ... to ${renderedValue} ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then),
           (elementInfo) => {
 
@@ -1214,7 +1236,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["STYLE_ASSERT"].name} ... is "${style}: "${value}" ...  using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
@@ -1287,7 +1309,7 @@ module.exports.bindDriver = function(browser) {
         if (regex) renderedValue = new RegExp(renderedValue, "g");
         var techDescription = `${Actions["VALUE_ASSERT"].name} ... is "${renderedValue}" ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
@@ -1369,7 +1391,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["FOCUS"].name} ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
@@ -1419,7 +1441,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SUBMIT"].name} ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
@@ -1466,7 +1488,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["BLUR"].name} ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {
@@ -1516,7 +1538,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SCROLL_WINDOW_ELEMENT"].name} ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType) {
@@ -1604,7 +1626,7 @@ module.exports.bindDriver = function(browser) {
         selector = renderWithVars(selector, getVars(browser));
         var techDescription = `${Actions["SCROLL_ELEMENT"].name} ... using "${selector}" (${selectorType}) to (x: ${x}, y: ${y})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         browser.execute(prepStringFuncForExecute(`function(selector, selectorType, x, y) {
@@ -1655,7 +1677,7 @@ module.exports.bindDriver = function(browser) {
         if (regex) assertText = new RegExp(assertText, "g");
         var techDescription = `${Actions["TEXT_ASSERT"].name} ... is "${assertText}" ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
@@ -1911,7 +1933,7 @@ module.exports.bindDriver = function(browser) {
         var variables = browser.vars.getAllObject();
         var techDescription = `${Actions["DYNAMIC_VAR"].name} ... adding var named ${varName} ... using "${selector}" (${selectorType})`;
 
-        browser._elementPresent(selector, selectorType, null, timeout,
+        browser._waitElementPresent(selector, selectorType, null, timeout,
           () => reportElementMissing(actionType, selector, selectorType, cb, optional, description, techDescription, then));
 
         // check for a successful browser execute.
@@ -2030,7 +2052,7 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "_elementPresent": (selector, selectorType = "CSS", description, timeout, onFail = noop, onSuccess = noop) => {
+    "_waitElementPresent": (selector, selectorType = "CSS", description, timeout, onFail = noop, onSuccess = noop) => {
 
       var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
       var currentAttempt = 0;
@@ -2082,7 +2104,63 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "_elementVisible": (selector, selectorType = "CSS", options, description, timeout, onFail = noop, onSuccess = noop) => {
+    "_waitElementNotPresent": (selector, selectorType = "CSS", description, timeout, onFail = noop, onSuccess = noop) => {
+
+      var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
+      var currentAttempt = 0;
+
+      function recursiveCheckforElPresent(selector) {
+
+        browser._checkForElementPresent(selector, selectorType, function(result) {
+
+          if (result.value && result.value.criticalError) return onCriticalDriverError({
+            error: result.value.criticalError,
+            techDescription: `Checking element is not present using ${selector} (${selectorType})`
+          });
+
+          if (!result.value.success) {
+            onSuccess();
+          } else if (currentAttempt < attempts) {
+            currentAttempt++;
+            browser.pause(POLLING_RATE);
+            recursiveCheckforElPresent(selector);
+          } else {
+            onFail();
+          }
+
+        });
+      }
+
+      recursiveCheckforElPresent(selector);
+
+      return browser;
+
+    },
+
+    _checkForElementPresent: (selector, selectorType, cb) => {
+      browser.execute(
+        prepStringFuncForExecute(`function(selector, selectorType, variables) {
+          ${snptGetElement}
+          ${snptEvaluator}
+          try {
+            
+            selector = snptEvaluator(selector, variables);
+            
+            var el = snptGetElement(selector, selectorType); 
+            
+            if (el) {
+              return { success: true, elementInfo: { nodeName: el.nodeName } }
+            } else {
+              return { success: false }  
+            }
+            
+          } catch (e) {
+            return { criticalError: e.toString() }
+          }
+        }`), [selector, selectorType, browser.vars.getAllObject()], cb);
+    },
+
+    "_waitElementVisible": (selector, selectorType = "CSS", options, description, timeout, onFail = noop, onSuccess = noop) => {
 
       var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
       var currentAttempt = 0;
@@ -2115,7 +2193,7 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "_elementNotVisible": (selector, selectorType = "CSS", options, description, timeout, onFail = noop, onSuccess = noop) => {
+    "_waitElementNotVisible": (selector, selectorType = "CSS", options, description, timeout, onFail = noop, onSuccess = noop) => {
 
       var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
       var currentAttempt = 0;
