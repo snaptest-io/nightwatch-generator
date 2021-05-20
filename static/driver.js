@@ -2012,14 +2012,14 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "changeFrame": (args) => {
+    "enterFrame": (args) => {
 
-      var { value, description, regex = false, cb, optional = false, timeout, actionType = "PATH_ASSERT" } = args;
+      var { value, description, cb, optional = false, timeout, actionType = "ENTER_FRAME" } = args;
 
       var then = Date.now();
       var description = renderWithVars(description, getVars(browser));
       value = renderWithVars(value, getVars(browser));
-      var techDescription = `${Actions["CHANGE_FRAME"].name} ... using ${src}`;
+      var techDescription = `${Actions["ENTER_FRAME"].name} ... with src ${value}`;
 
       browser.perform(() =>  {
 
@@ -2054,12 +2054,11 @@ module.exports.bindDriver = function(browser) {
 
     "exitFrame": (args) => {
 
-      var { description, cb, optional = false, timeout, actionType = "PATH_ASSERT" } = args;
+      var { description, cb, actionType = "EXIT_FRAME" } = args;
 
       var then = Date.now();
       var description = renderWithVars(description, getVars(browser));
-      // var techDescription = `${Actions["EXIT_FRAME"].name}`;
-      var techDescription = `EXIT_FRAME`;
+      var techDescription = `${Actions["EXIT_FRAME"].name}`;
 
       browser.perform(() =>  {
 
