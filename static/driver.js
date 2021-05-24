@@ -2012,6 +2012,131 @@ module.exports.bindDriver = function(browser) {
 
     },
 
+    "enterFrame": (args) => {
+
+      var { value, description, cb, optional = false, timeout, actionType = "ENTER_FRAME" } = args;
+
+      var then = Date.now();
+      var description = renderWithVars(description, getVars(browser));
+      value = renderWithVars(value, getVars(browser));
+      var techDescription = `${Actions["ENTER_FRAME"].name} ... with src ${value}`;
+
+      browser.perform(() =>  {
+
+        if (blockCancelled(browser)) return;
+
+        browser._waitForIframe(value, timeout,
+          () => {
+            onActionFailed({
+              optional,
+              description,
+              actionType,
+              techDescription,
+              error: `Couldn't find iframe using src="${value}"`,
+              duration: Date.now() - then
+            });
+          },
+          (frameIdx) => {
+            browser.frame(frameIdx)
+            onActionSuccess({
+              description,
+              techDescription,
+              actionType,
+              duration: Date.now() - then
+            });
+            if (cb) cb(true);
+          })
+      })
+
+      return browser
+
+    },
+
+    "exitFrame": (args) => {
+
+      var { description, cb, actionType = "EXIT_FRAME" } = args;
+
+      var then = Date.now();
+      var description = renderWithVars(description, getVars(browser));
+      var techDescription = `${Actions["EXIT_FRAME"].name}`;
+
+      browser.perform(() =>  {
+
+        if (blockCancelled(browser)) return;
+
+        browser.frameParent()
+
+        onActionSuccess({
+          description,
+          techDescription,
+          actionType,
+          duration: Date.now() - then
+        });
+
+        if (cb) cb(true);
+
+      })
+
+      return browser
+
+    },
+
+    "_waitForIframe": (src, timeout, onFail = noop, onSuccess = noop) => {
+
+      var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
+      var currentAttempt = 0;
+
+      function checkforIframe(src) {
+        browser.execute(
+          prepStringFuncForExecute(`function() {
+            try {
+              let frameNodes = document.querySelectorAll("iframe")
+              frames = []
+              
+              for (var i = 0; i < frameNodes.length; i++) {
+                frames.push({
+                  idx: i,
+                  src: frameNodes[i].src
+                });
+              }
+              
+              return {
+                frames: frames
+              }
+            } catch (e) {
+              return { criticalError: e.toString() }
+            }
+          }`), [], function(result) {
+
+            if (result.value && result.value.criticalError)
+              return onCriticalDriverError({
+                error: result.value.criticalError,
+                techDescription: `Finding iframe using ${src}`
+              });
+
+            let targetFrameIdx = -1;
+
+            result.value.frames.forEach((frame) => {
+              if (frame.src === src) targetFrameIdx = frame.idx;
+            })
+
+            if (targetFrameIdx === -1 && currentAttempt < attempts) {
+              currentAttempt++;
+              browser.pause(POLLING_RATE);
+              checkforIframe(src);
+            } else if (targetFrameIdx === -1) {
+              onFail();
+            } else {
+              onSuccess(targetFrameIdx);
+            }
+          });
+      }
+
+      checkforIframe(src);
+
+      return browser;
+    },
+
     "_getElText": (selector, selectorType = "CSS", onSuccess = noop) => {
 
       browser.execute(prepStringFuncForExecute(`function(selector, selectorType, variables) {

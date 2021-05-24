@@ -130,6 +130,14 @@ const actions = {
     render: (action, selector, value, meta) =>
       `.executeScript(${buildActionParams(action, {value: `${prepForArgString(action.script)}`})})`
   },
+  "ENTER_FRAME": {
+    render: (action, selector, value, meta) =>
+      `.enterFrame(${buildActionParams(action, {value})})`
+  },
+  "EXIT_FRAME": {
+    render: (action, selector, value, meta) =>
+      `.exitFrame(${buildActionParams(action, {})})`
+  },
   "REFRESH": {
     render: (action, selector, value, meta) =>
       `.pageRefresh(${buildActionParams(action, {})})`
