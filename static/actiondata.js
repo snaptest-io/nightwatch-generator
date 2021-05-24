@@ -132,7 +132,7 @@ const Actions = [
       "snaptest",
       "nightwatch"
     ],
-    "tags": ["enter", "change", "select", "frame", "iframe", "enter", "push"],
+    "tags": ["enter", "change", "select", "push", "frame", "iframe"],
     "params" :[
       {
         "name" : "value",
