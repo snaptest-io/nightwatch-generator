@@ -2014,25 +2014,25 @@ module.exports.bindDriver = function(browser) {
 
     "enterFrame": (args) => {
 
-      var { value, description, cb, optional = false, timeout, actionType = "ENTER_FRAME" } = args;
+      var { selector, selectorType = "CSS", description, cb, optional = false, timeout, actionType = "ENTER_FRAME" } = args;
 
       var then = Date.now();
       var description = renderWithVars(description, getVars(browser));
-      value = renderWithVars(value, getVars(browser));
-      var techDescription = `${Actions["ENTER_FRAME"].name} ... with src ${value}`;
+      selector = renderWithVars(selector, getVars(browser));
+      var techDescription = `${Actions["ENTER_FRAME"].name} ... using "${selector}" (${selectorType})`;
 
       browser.perform(() =>  {
 
         if (blockCancelled(browser)) return;
 
-        browser._waitForIframe(value, timeout,
+        browser._waitForIframe(selector, selectorType, timeout,
           () => {
             onActionFailed({
               optional,
               description,
               actionType,
               techDescription,
-              error: `Couldn't find iframe using src="${value}"`,
+              error: `Couldn't find iframe using "${selector}" (${selectorType})`,
               duration: Date.now() - then
             });
           },
@@ -2081,58 +2081,57 @@ module.exports.bindDriver = function(browser) {
 
     },
 
-    "_waitForIframe": (src, timeout, onFail = noop, onSuccess = noop) => {
+    "_waitForIframe": (selector, selectorType, timeout, onFail = noop, onSuccess = noop) => {
 
       var attempts = parseInt((timeout || TIMEOUT) / POLLING_RATE);
       var currentAttempt = 0;
 
-      function checkforIframe(src) {
+      function checkforIframe() {
         browser.execute(
-          prepStringFuncForExecute(`function() {
+          prepStringFuncForExecute(`function(selector, selectorType, variables) {
+            ${snptGetElement}
+            ${snptEvaluator}
             try {
+            
+              selector = snptEvaluator(selector, variables);
+              var element = snptGetElement(selector, selectorType);
+              if (!element) return { frameIdx: -1 };
+            
               let frameNodes = document.querySelectorAll("iframe")
-              frames = []
+              let frameIdx = -1
               
               for (var i = 0; i < frameNodes.length; i++) {
-                frames.push({
-                  idx: i,
-                  src: frameNodes[i].src
-                });
+                if (frameNodes[i].src === element.src) {
+                  frameIdx = i;
+                }
               }
               
               return {
-                frames: frames
+                frameIdx: frameIdx
               }
             } catch (e) {
               return { criticalError: e.toString() }
             }
-          }`), [], function(result) {
-
+          }`), [selector, selectorType, browser.vars.getAllObject()], function(result) {
             if (result.value && result.value.criticalError)
               return onCriticalDriverError({
                 error: result.value.criticalError,
-                techDescription: `Finding iframe using ${src}`
+                techDescription: `Finding iframe`
               });
 
-            let targetFrameIdx = -1;
-
-            result.value.frames.forEach((frame) => {
-              if (frame.src === src) targetFrameIdx = frame.idx;
-            })
-
-            if (targetFrameIdx === -1 && currentAttempt < attempts) {
+            if (result.value.frameIdx === -1 && currentAttempt < attempts) {
               currentAttempt++;
               browser.pause(POLLING_RATE);
-              checkforIframe(src);
-            } else if (targetFrameIdx === -1) {
+              checkforIframe();
+            } else if (result.value.frameIdx === -1) {
               onFail();
             } else {
-              onSuccess(targetFrameIdx);
+              onSuccess(result.value.frameIdx);
             }
           });
       }
 
-      checkforIframe(src);
+      checkforIframe();
 
       return browser;
     },
