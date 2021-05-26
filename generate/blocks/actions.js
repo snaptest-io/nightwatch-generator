@@ -132,7 +132,7 @@ const actions = {
   },
   "ENTER_FRAME": {
     render: (action, selector, value, meta) =>
-      `.enterFrame(${buildActionParams(action, {value})})`
+      `.enterFrame(${buildActionParams(action, {selector, selectorType: action.selectorType})})`
   },
   "EXIT_FRAME": {
     render: (action, selector, value, meta) =>
