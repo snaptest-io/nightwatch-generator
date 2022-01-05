@@ -150,6 +150,14 @@ const actions = {
     render: (action, selector, value, meta) =>
       `.pageForward(${buildActionParams(action, {})})`
   },
+  "MOST_RECENT_TAB": {
+    render: (action, selector, value, meta) =>
+      `.switchToMostRecentTab(${buildActionParams(action, {})})`
+  },
+  "CLOSE_TAB": {
+    render: (action, selector, value, meta) =>
+      `.closeTab(${buildActionParams(action, {})})`
+  },
   "DIALOG": {
     render: (action, selector, value, meta) =>
       `.setDialogs(${buildActionParams(action, {
