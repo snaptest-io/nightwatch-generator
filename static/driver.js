@@ -1,6 +1,11 @@
 const Actions = require('./actiondata').ActionsByConstant;
 const Variables = require('./variables.js');
-const TIMEOUT = 5000;
+var TIMEOUT = 5000;
+
+try {
+  const Settings = require('./settings.json');
+  TIMEOUT = Settings.globalTimeout;
+} catch (e) { /* Ignore error to use default TIMEOUT to maintain backwards compatibility with the cli. */ }
 
 module.exports.bindDriver = function(browser) {
 

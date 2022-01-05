@@ -4,6 +4,7 @@ var componentGenerator = require('./generate/component');
 var envsGenerator = require('./generate/envs');
 var runsGenerator = require('./generate/runs');
 var suiteMetaGenerator = require('./generate/suiteMeta');
+var settingsGenerator = require('./generate/settings');
 var fs = require('fs-extra');
 var VERSION = require('./package.json').version;
 
@@ -25,6 +26,7 @@ function generate() {
   envsGenerator.generateJsonFile(this, fileStructure, ["common"]);
   runsGenerator.generateJsonFile(this, fileStructure, ["common"]);
   suiteMetaGenerator.generateJsonFile(this, fileStructure, ["common"]);
+  settingsGenerator.generateJsonFile(this, fileStructure, ["common"]);
 
   // Write to disc
   writeFiles(fileStructure, this);
