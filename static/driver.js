@@ -620,7 +620,66 @@ module.exports.bindDriver = function(browser) {
       return browser;
 
     },
+    "switchToMostRecentTab": (args) => {
 
+      var { description, cb, optional = false, timeout, actionType = "MOST_RECENT_TAB" } = args;
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["MOST_RECENT_TAB"].name}`;
+
+        browser.windowHandles(function(result) {
+          browser.switchWindow(result.value[result.value.length - 1])
+        });
+
+        onActionSuccess({
+          description,
+          techDescription,
+          actionType,
+          duration: Date.now() - then
+        });
+
+        if (cb) cb(true);
+      });
+
+      return browser;
+
+    },
+    "closeTab": (args) => {
+
+      var { description, cb, optional = false, timeout, actionType = "CLOSE_TAB" } = args;
+
+      browser.perform(() => {
+
+        if (blockCancelled(browser)) return;
+
+        var then = Date.now();
+        var description = renderWithVars(description, getVars(browser));
+        var techDescription = `${Actions["CLOSE_TAB"].name}`;
+
+        browser.closeWindow();
+
+        browser.windowHandles(function(result) {
+          browser.switchWindow(result.value[result.value.length - 1])
+        });
+
+        onActionSuccess({
+          description,
+          techDescription,
+          actionType,
+          duration: Date.now() - then
+        });
+
+        if (cb) cb(true);
+      });
+
+      return browser;
+
+    },
     "_clearCookies": (domain, cb) => {
 
       // check whether we're already on the domain to clear.  If not, open a new window.
