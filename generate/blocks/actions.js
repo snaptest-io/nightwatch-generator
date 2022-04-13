@@ -347,14 +347,7 @@ const actions = {
 
       if (!component) return `// Empty component action, or component was removed.`;
 
-      var compName = component.name;
-      var compsWithName = meta.components.filter((comp) => comp.name === component.name);
-
-      if (compsWithName.length > 1)
-        compName = compName + "-" + _.findIndex(meta.components, {id: component.id});
-
-      if (!component) return [];
-      return `.component("${compName}", ${buildComponentActionParams(action, component)})`;
+      return `.component("${component.name} ${component.id}", ${buildComponentActionParams(action, component)})`;
     }
   },
   "EVAL": {
