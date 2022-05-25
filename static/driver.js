@@ -405,15 +405,19 @@ module.exports.bindDriver = function(browser) {
 
         browser._waitElementNotPresent(selector, selectorType, null, timeout,
           () => {
-            onActionFailed({
-              optional,
-              description,
-              techDescription,
-              actionType,
-              duration: Date.now() - then,
-              error: `Expected element to not be present, but stayed present for ${Date.now() - then}ms.`
-            });
-            console.log("WEIID");
+            if (cb) {
+              cb(false)
+            }
+            else {
+              onActionFailed({
+                optional,
+                description,
+                techDescription,
+                actionType,
+                duration: Date.now() - then,
+                error: `Expected element to not be present, but stayed present for ${Date.now() - then}ms.`
+              });
+            }
           },
           () => {
             onActionSuccess({
@@ -462,14 +466,19 @@ module.exports.bindDriver = function(browser) {
 
         browser._waitElementVisible(selector, selectorType, options, null, timeout,
           () => {
-            onActionFailed({
-              optional,
-              description,
-              techDescription,
-              actionType,
-              duration: Date.now() - then,
-              error: `Expected element to be visible.`
-            });
+            if (cb) {
+              cb(false)
+            }
+            else {
+              onActionFailed({
+                optional,
+                description,
+                techDescription,
+                actionType,
+                duration: Date.now() - then,
+                error: `Expected element to be visible.`
+              });
+            }
           },
           () => {
             onActionSuccess({
@@ -510,14 +519,19 @@ module.exports.bindDriver = function(browser) {
 
         browser._waitElementNotVisible(selector, selectorType, options, null, timeout,
           () => {
-            onActionFailed({
-              optional,
-              description,
-              techDescription,
-              actionType,
-              duration: Date.now() - then,
-              error: `Expected element to not be visible, but stayed visible for ${Date.now() - then}ms.`
-            });
+            if (cb) {
+              cb(false)
+            }
+            else {
+              onActionFailed({
+                optional,
+                description,
+                techDescription,
+                actionType,
+                duration: Date.now() - then,
+                error: `Expected element to not be visible, but stayed visible for ${Date.now() - then}ms.`
+              });
+            }
           },
           () => {
             onActionSuccess({
