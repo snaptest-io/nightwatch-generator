@@ -21,7 +21,7 @@
   "homepage": "https://github.com/snaptest/nightwatch-generator#readme",
   "dependencies": {
     "deep-clone": "^3.0.3",
-    "ejs": "2.5.7",
+    "ejs": "3.1.7",
     "fs-extra": "3.0.1",
     "indent-string": "^4.0.0",
     "js-beautify": "1.6.12",
