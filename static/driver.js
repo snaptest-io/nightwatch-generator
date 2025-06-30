@@ -226,7 +226,7 @@ module.exports.bindDriver = function(browser) {
 
         browser.url(renderedUrl);
 
-        if (resize) browser.resizeWindow(width, height);
+        if (resize) browser.window.resize(parseInt(width), parseInt(height));
 
         if (complete) {
           browser._pollUntilDOMComplete(timeout, (success) => {
@@ -675,7 +675,7 @@ module.exports.bindDriver = function(browser) {
         var description = renderWithVars(description, getVars(browser));
         var techDescription = `${Actions["CLOSE_TAB"].name}`;
 
-        browser.closeWindow();
+        browser.window.close();
 
         browser.windowHandles(function(result) {
           browser.switchWindow(result.value[result.value.length - 1])
@@ -722,16 +722,16 @@ module.exports.bindDriver = function(browser) {
 
           if (result.value.domainMismatch) {
 
-            browser.switchWindow("delete_cookies");
-            browser.deleteCookies();
+            browser.window.switch("delete_cookies");
+            browser.deleteAll();
 
-            browser.windowHandles(function(result) {
-              browser.closeWindow();
-              browser.switchWindow(result.value[0]);
+            browser.window.getAllHandles(function(result) {
+              browser.window.close();
+              browser.window.switch(result.value[0]);
             });
 
           } else {
-            browser.deleteCookies();
+            browser.cookies.deleteAll();
           }
 
           cb();
@@ -924,8 +924,8 @@ module.exports.bindDriver = function(browser) {
         var then = Date.now();
         var techDescription = `${Actions["CHANGE_WINDOW"].name}`;
 
-        browser.windowHandles(function(result) {
-          browser.switchWindow(result.value[windowIndex]);
+        browser.window.getAllHandles(function(result) {
+          browser.window.switch(result.value[windowIndex]);
           onActionSuccess({
             description,
             techDescription,
